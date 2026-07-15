@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Legacy.Maliev.CatalogService.Api/Legacy.Maliev.CatalogService.Api.csproj" />
+  <Project Path="Legacy.Maliev.CatalogService.Application/Legacy.Maliev.CatalogService.Application.csproj" />
+  <Project Path="Legacy.Maliev.CatalogService.Data/Legacy.Maliev.CatalogService.Data.csproj" />
+  <Project Path="Legacy.Maliev.CatalogService.Domain/Legacy.Maliev.CatalogService.Domain.csproj" />
+  <Project Path="Legacy.Maliev.CatalogService.Tests/Legacy.Maliev.CatalogService.Tests.csproj" />
+</Solution>
