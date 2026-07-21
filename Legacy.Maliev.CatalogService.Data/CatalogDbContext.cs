@@ -46,8 +46,8 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
         entity.Property(value => value.Name).HasMaxLength(50).IsRequired();
         entity.Property(value => value.Continent).HasMaxLength(50);
         entity.Property(value => value.CountryCode).HasMaxLength(30);
-        entity.Property(value => value.Iso2).HasColumnName("ISO2").HasMaxLength(2);
-        entity.Property(value => value.Iso3).HasColumnName("ISO3").HasMaxLength(3);
+        entity.Property(value => value.Iso2).HasColumnName("ISO2").HasColumnType("character(2)").HasMaxLength(2);
+        entity.Property(value => value.Iso3).HasColumnName("ISO3").HasColumnType("character(3)").HasMaxLength(3);
     }
 
     private static void ConfigureCurrency(ModelBuilder modelBuilder)
@@ -172,8 +172,8 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
         entity.ToTable(table);
         entity.Property<int>(nameof(Country.Id)).HasColumnName("ID").ValueGeneratedOnAdd();
         entity.HasKey(nameof(Country.Id));
-        entity.Property<DateTime?>(nameof(Country.CreatedDate)).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
-        entity.Property<DateTime?>(nameof(Country.ModifiedDate)).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
+        entity.Property<DateTime?>(nameof(Country.CreatedDate)).HasColumnType("timestamp without time zone").HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+        entity.Property<DateTime?>(nameof(Country.ModifiedDate)).HasColumnType("timestamp without time zone").HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
         entity.Property<uint>("xmin").HasColumnType("xid").IsRowVersion();
     }
 }

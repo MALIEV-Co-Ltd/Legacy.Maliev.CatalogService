@@ -1,3 +1,5 @@
+using Legacy.Maliev.CatalogService.Application.Models;
+using Legacy.Maliev.CatalogService.Application.Services;
 using Legacy.Maliev.CatalogService.Data;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
@@ -48,5 +50,25 @@ public sealed class PostgreSqlMigrationTests(PostgreSqlFixture fixture)
 
         command.CommandText = "SELECT xmin FROM \"Country\" LIMIT 0;";
         await command.ExecuteNonQueryAsync();
+    }
+
+    [Fact]
+    public async Task CreateCountryAndCurrency_WithUtcTimeProvider_PersistsAndReadsBackWithoutKindMismatch()
+    {
+        await using var context = fixture.CreateContext();
+        await context.Database.MigrateAsync();
+
+        var service = new CatalogApplicationService(new CatalogRepository(context), TimeProvider.System);
+
+        var country = await service.CreateCountryAsync(new UpsertCountryRequest("Testlandia", "Asia", "999", "TL", "TLD"), CancellationToken.None);
+        var currency = await service.CreateCurrencyAsync(new UpsertCurrencyRequest("TST", "Test Dollar"), CancellationToken.None);
+
+        Assert.Equal("Testlandia", country.Name);
+        Assert.Equal("TST", currency.ShortName);
+
+        var fetchedCountry = await service.GetCountryAsync(country.Id, CancellationToken.None);
+        var fetchedCurrency = await service.GetCurrencyAsync(currency.Id, CancellationToken.None);
+        Assert.NotNull(fetchedCountry);
+        Assert.NotNull(fetchedCurrency);
     }
 }
