@@ -300,7 +300,7 @@ public sealed class CatalogApplicationService(
             ? null
             : (await repository.ListMaterialSurfaceFinishesAsync(materialId, cancellationToken)).Select(ToResponse).ToArray();
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTime UtcNow => DateTime.SpecifyKind(timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Unspecified);
 
     private async Task<IReadOnlyList<TEntity>> GetListAsync<TEntity>(string key, CancellationToken cancellationToken) where TEntity : class
     {
