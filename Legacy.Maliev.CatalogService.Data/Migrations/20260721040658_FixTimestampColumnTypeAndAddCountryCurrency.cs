@@ -478,6 +478,8 @@ namespace Legacy.Maliev.CatalogService.Data.Migrations
             {
                 migrationBuilder.Sql($"""
                     ALTER TABLE "{table}"
+                    ALTER COLUMN "{column}" DROP DEFAULT;
+                    ALTER TABLE "{table}"
                     ALTER COLUMN "{column}" TYPE {targetType}
                     USING "{column}" AT TIME ZONE 'UTC';
                     """);
