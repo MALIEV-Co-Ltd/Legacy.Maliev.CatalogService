@@ -11,6 +11,12 @@ namespace Legacy.Maliev.CatalogService.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // DateTime values in the migrated catalog are UTC wall-clock values represented
+            // as timestamp without time zone. PostgreSQL's implicit cast uses the session
+            // timezone, so make the UTC contract explicit before the generated metadata
+            // operations below update defaults and CLR type metadata.
+            ConvertUtcTimestampColumns(migrationBuilder, toTimestampWithoutTimeZone: true);
+
             migrationBuilder.AlterColumn<DateTime>(
                 name: "ModifiedDate",
                 table: "SurfaceFinish",
@@ -235,6 +241,10 @@ namespace Legacy.Maliev.CatalogService.Data.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // The inverse conversion must preserve the same UTC instant when a rollback is
+            // rehearsed under a non-UTC session timezone.
+            ConvertUtcTimestampColumns(migrationBuilder, toTimestampWithoutTimeZone: false);
+
             migrationBuilder.AlterColumn<DateTime>(
                 name: "ModifiedDate",
                 table: "SurfaceFinish",
@@ -455,5 +465,45 @@ namespace Legacy.Maliev.CatalogService.Data.Migrations
                 oldNullable: true,
                 oldDefaultValueSql: "CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
         }
+
+        private static void ConvertUtcTimestampColumns(
+            MigrationBuilder migrationBuilder,
+            bool toTimestampWithoutTimeZone)
+        {
+            var targetType = toTimestampWithoutTimeZone
+                ? "timestamp without time zone"
+                : "timestamp with time zone";
+
+            foreach (var (table, column) in UtcTimestampColumns)
+            {
+                migrationBuilder.Sql($"""
+                    ALTER TABLE "{table}"
+                    ALTER COLUMN "{column}" TYPE {targetType}
+                    USING "{column}" AT TIME ZONE 'UTC';
+                    """);
+            }
+        }
+
+        private static readonly (string Table, string Column)[] UtcTimestampColumns =
+        [
+            ("SurfaceFinish", "ModifiedDate"),
+            ("SurfaceFinish", "CreatedDate"),
+            ("MaterialHasSurfaceFinish", "ModifiedDate"),
+            ("MaterialHasSurfaceFinish", "CreatedDate"),
+            ("MaterialHasSupplier", "ModifiedDate"),
+            ("MaterialHasSupplier", "CreatedDate"),
+            ("MaterialHasColor", "ModifiedDate"),
+            ("MaterialHasColor", "CreatedDate"),
+            ("MaterialGroup", "ModifiedDate"),
+            ("MaterialGroup", "CreatedDate"),
+            ("Material", "ModifiedDate"),
+            ("Material", "CreatedDate"),
+            ("Currency", "ModifiedDate"),
+            ("Currency", "CreatedDate"),
+            ("Country", "ModifiedDate"),
+            ("Country", "CreatedDate"),
+            ("Color", "ModifiedDate"),
+            ("Color", "CreatedDate")
+        ];
     }
 }

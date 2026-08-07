@@ -71,4 +71,45 @@ public sealed class PostgreSqlMigrationTests(PostgreSqlFixture fixture)
         Assert.NotNull(fetchedCountry);
         Assert.NotNull(fetchedCurrency);
     }
+
+    [Fact]
+    public async Task TimestampCompatibilityMigration_PreservesUtcWallClock_WhenSessionTimeZoneIsNonUtc()
+    {
+        await using var container = new PostgreSqlBuilder("postgres:18-alpine").Build();
+        await container.StartAsync();
+
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseNpgsql(container.GetConnectionString())
+            .Options;
+
+        await using var context = new CatalogDbContext(options);
+        await context.Database.MigrateAsync("20260715030219_InitialPostgresCompatibility");
+
+        await context.Database.OpenConnectionAsync();
+        await using (var command = context.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = """
+                SET TIME ZONE 'America/Los_Angeles';
+                INSERT INTO "Country" ("Name", "CreatedDate", "ModifiedDate")
+                VALUES ('UTC migration fixture', TIMESTAMPTZ '2026-07-21 12:00:00+00', TIMESTAMPTZ '2026-07-21 12:00:00+00');
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await context.Database.MigrateAsync();
+
+        await using var readCommand = context.Database.GetDbConnection().CreateCommand();
+        readCommand.CommandText = "SELECT \"CreatedDate\" FROM \"Country\" WHERE \"Name\" = 'UTC migration fixture';";
+        var value = Assert.IsType<DateTime>(await readCommand.ExecuteScalarAsync());
+
+        Assert.Equal(new DateTime(2026, 7, 21, 12, 0, 0), value);
+        Assert.Equal(DateTimeKind.Unspecified, value.Kind);
+
+        await context.Database.MigrateAsync("20260715030219_InitialPostgresCompatibility");
+
+        readCommand.CommandText = "SELECT \"CreatedDate\" FROM \"Country\" WHERE \"Name\" = 'UTC migration fixture';";
+        var rolledBackValue = Assert.IsType<DateTime>(await readCommand.ExecuteScalarAsync());
+
+        Assert.Equal(new DateTime(2026, 7, 21, 12, 0, 0, DateTimeKind.Utc), rolledBackValue);
+    }
 }
