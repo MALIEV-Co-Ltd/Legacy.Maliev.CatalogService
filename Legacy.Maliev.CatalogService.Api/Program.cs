@@ -28,7 +28,7 @@ builder.Services.AddHttpClient<IExchangeRateClient, FrankfurterExchangeRateClien
 {
     client.BaseAddress = new Uri("https://api.frankfurter.app/");
     client.Timeout = TimeSpan.FromSeconds(15);
-});
+}).AddLegacyStandardResilienceHandler();
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<ICatalogCache, DistributedCatalogCache>();
 builder.Services.AddScoped<ICatalogService, CatalogApplicationService>();

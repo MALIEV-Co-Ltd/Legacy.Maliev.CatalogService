@@ -10,6 +10,8 @@ public sealed class WorkflowContractTests
     private static readonly string Workflow = File.ReadAllText(FindRepositoryFile(".github", "workflows", "_build-and-test.yml"));
     private static readonly string ApiProject = File.ReadAllText(
         FindRepositoryFile("Legacy.Maliev.CatalogService.Api", "Legacy.Maliev.CatalogService.Api.csproj"));
+    private static readonly string ApiProgram = File.ReadAllText(
+        FindRepositoryFile("Legacy.Maliev.CatalogService.Api", "Program.cs"));
 
     [Fact]
     public void BuildAndTest_SatisfiesStructuralContract()
@@ -39,6 +41,24 @@ public sealed class WorkflowContractTests
         Assert.Contains("Legacy.Maliev.ServiceDefaults", ApiProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Maliev.Aspire\\Maliev.Aspire.ServiceDefaults", ApiProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Include=\"Maliev.Aspire.ServiceDefaults\"", ApiProject, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExchangeRateClient_UsesLegacyReadResiliencePipeline()
+    {
+        var registrationStart = ApiProgram.IndexOf(
+            "AddHttpClient<IExchangeRateClient, FrankfurterExchangeRateClient>",
+            StringComparison.Ordinal);
+        Assert.True(registrationStart >= 0, "Frankfurter exchange-rate client registration is missing.");
+
+        var registrationEnd = ApiProgram.IndexOf(
+            "builder.Services.AddScoped<ICatalogRepository, CatalogRepository>",
+            registrationStart,
+            StringComparison.Ordinal);
+        Assert.True(registrationEnd > registrationStart, "Exchange-rate client registration boundary is missing.");
+
+        var registration = ApiProgram[registrationStart..registrationEnd];
+        Assert.Contains("AddLegacyStandardResilienceHandler", registration, StringComparison.Ordinal);
     }
 
     [Fact]
