@@ -23,7 +23,7 @@ public sealed class DistributedCatalogCache(IDistributedCache cache, ILogger<Dis
             var bytes = await cache.GetAsync(key, cancellationToken);
             return bytes is null ? default : JsonSerializer.Deserialize<T>(bytes, JsonOptions);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             logger.LogWarning(exception, "Catalog cache read failed for {CacheKey}; using PostgreSQL", key);
             return default;
@@ -38,7 +38,7 @@ public sealed class DistributedCatalogCache(IDistributedCache cache, ILogger<Dis
             var bytes = JsonSerializer.SerializeToUtf8Bytes(value, JsonOptions);
             await cache.SetAsync(key, bytes, EntryOptions, cancellationToken);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             logger.LogWarning(exception, "Catalog cache write failed for {CacheKey}; continuing without cache", key);
         }
@@ -51,7 +51,7 @@ public sealed class DistributedCatalogCache(IDistributedCache cache, ILogger<Dis
         {
             await cache.RemoveAsync(key, cancellationToken);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             logger.LogWarning(exception, "Catalog cache invalidation failed for {CacheKey}", key);
         }
