@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Legacy.Maliev.CatalogService.Data;
 using Legacy.Maliev.CatalogService.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -59,5 +60,31 @@ public sealed class CatalogModelCompatibilityTests
         Assert.Equal(2, country?.FindProperty(nameof(Country.Iso2))?.GetMaxLength());
         Assert.Equal(10, currency?.FindProperty(nameof(Currency.ShortName))?.GetMaxLength());
         Assert.Equal(50, currency?.FindProperty(nameof(Currency.LongName))?.GetMaxLength());
+    }
+
+    [Fact]
+    public void TimestampMigration_DropsDefaultsBeforeUtcPreservingTypeConversion()
+    {
+        var migration = File.ReadAllText(FindRepositoryFile(
+            "Legacy.Maliev.CatalogService.Data/Migrations/20260721040658_FixTimestampColumnTypeAndAddCountryCurrency.cs"));
+
+        Assert.Contains("DROP DEFAULT", migration, StringComparison.Ordinal);
+        Assert.Contains("USING \"{column}\" AT TIME ZONE 'UTC'", migration, StringComparison.Ordinal);
+    }
+
+    private static string FindRepositoryFile(string relativePath, [CallerFilePath] string sourceFile = "")
+    {
+        for (var directory = new DirectoryInfo(Path.GetDirectoryName(sourceFile)!);
+             directory is not null;
+             directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException($"Could not find migration source '{relativePath}'.");
     }
 }

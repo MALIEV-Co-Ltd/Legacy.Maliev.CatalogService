@@ -10,6 +10,8 @@ public sealed class WorkflowContractTests
     private static readonly string Workflow = File.ReadAllText(FindRepositoryFile(".github", "workflows", "_build-and-test.yml"));
     private static readonly string ApiProject = File.ReadAllText(
         FindRepositoryFile("Legacy.Maliev.CatalogService.Api", "Legacy.Maliev.CatalogService.Api.csproj"));
+    private static readonly string ApiProgram = File.ReadAllText(
+        FindRepositoryFile("Legacy.Maliev.CatalogService.Api", "Program.cs"));
 
     [Fact]
     public void BuildAndTest_SatisfiesStructuralContract()
@@ -29,8 +31,8 @@ public sealed class WorkflowContractTests
     public void BuildAndTest_RejectsCommentedDependencySha()
     {
         AssertMutationRejected(
-            "ref: bcab875a7f703d1d9c2d535479e93653720eb62d",
-            "ref: main # bcab875a7f703d1d9c2d535479e93653720eb62d");
+            "ref: 2833d30c492d9c40869d9bfac30e1ce9bdc11f84",
+            "ref: main # 2833d30c492d9c40869d9bfac30e1ce9bdc11f84");
     }
 
     [Fact]
@@ -39,6 +41,24 @@ public sealed class WorkflowContractTests
         Assert.Contains("Legacy.Maliev.ServiceDefaults", ApiProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Maliev.Aspire\\Maliev.Aspire.ServiceDefaults", ApiProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Include=\"Maliev.Aspire.ServiceDefaults\"", ApiProject, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExchangeRateClient_UsesLegacyReadResiliencePipeline()
+    {
+        var registrationStart = ApiProgram.IndexOf(
+            "AddHttpClient<IExchangeRateClient, FrankfurterExchangeRateClient>",
+            StringComparison.Ordinal);
+        Assert.True(registrationStart >= 0, "Frankfurter exchange-rate client registration is missing.");
+
+        var registrationEnd = ApiProgram.IndexOf(
+            "builder.Services.AddScoped<ICatalogRepository, CatalogRepository>",
+            registrationStart,
+            StringComparison.Ordinal);
+        Assert.True(registrationEnd > registrationStart, "Exchange-rate client registration boundary is missing.");
+
+        var registration = ApiProgram[registrationStart..registrationEnd];
+        Assert.Contains("AddLegacyStandardResilienceHandler", registration, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -184,7 +204,7 @@ internal static partial class WorkflowContractValidator
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["repository"] = "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults",
-                ["ref"] = "bcab875a7f703d1d9c2d535479e93653720eb62d",
+                ["ref"] = "2833d30c492d9c40869d9bfac30e1ce9bdc11f84",
                 ["path"] = ".dependencies/Legacy.Maliev.ServiceDefaults",
                 ["persist-credentials"] = "false",
             });
@@ -194,7 +214,7 @@ internal static partial class WorkflowContractValidator
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["repository"] = "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts",
-                ["ref"] = "95c62eb6209411f5aada443b315447a2f76ca0cd",
+                ["ref"] = "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7",
                 ["path"] = ".dependencies/Legacy.Maliev.CompatibilityContracts",
                 ["persist-credentials"] = "false",
             });
