@@ -4,9 +4,9 @@
 [![Main CI](https://github.com/MALIEV-Co-Ltd/Legacy.Maliev.CatalogService/actions/workflows/ci-main.yml/badge.svg)](https://github.com/MALIEV-Co-Ltd/Legacy.Maliev.CatalogService/actions/workflows/ci-main.yml)
 
 Temporary .NET 10 compatibility service extracted from the legacy Country,
-Currency, and Material services in `maliev-web`. It consolidates their integer-key
-schemas and PascalCase JSON contracts while the new `Maliev.CatalogService` is
-developed independently.
+Currency, and Material services in `maliev-web`. It consolidates their public API
+surface while preserving the independently migrated integer-key PostgreSQL databases
+and PascalCase JSON contracts as the new `Maliev.CatalogService` is developed independently.
 
 ## Architecture
 
@@ -41,7 +41,9 @@ legacy website until those consumers are migrated.
 
 - Legacy routes: `/Countries`, `/Currencies`, `/Materials`, and `/materials/*`
 - Scalar: `/catalog/scalar`
-- PostgreSQL database: `Catalog` on a `legacy-postgres-*` CloudNativePG instance
+- PostgreSQL databases on a `legacy-postgres-*` CloudNativePG instance:
+  `Material` through `CatalogDbContext`, `Country` through `CountryDbContext`, and
+  `Currency` through `CurrencyDbContext`
 - Redis key prefix: `legacy:catalog:`
 - Country and currency lists remain anonymous; all other endpoints require granular
   `legacy-catalog.*` permissions.

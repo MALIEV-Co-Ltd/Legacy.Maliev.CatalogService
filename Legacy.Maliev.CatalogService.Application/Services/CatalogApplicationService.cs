@@ -19,7 +19,8 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<CountryResponse>> GetCountriesAsync(CancellationToken cancellationToken) =>
-        (await GetListAsync<Country>(CountriesCacheKey, cancellationToken)).OrderBy(country => country.Name).Select(ToResponse).ToArray();
+        (await GetListAsync<Country, CountryResponse>(CountriesCacheKey, ToResponse, cancellationToken))
+            .OrderBy(country => country.Name).ToArray();
 
     /// <inheritdoc />
     public async Task<CountryResponse?> GetCountryAsync(int id, CancellationToken cancellationToken) =>
@@ -49,7 +50,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<CurrencyResponse>> GetCurrenciesAsync(CancellationToken cancellationToken) =>
-        (await GetListAsync<Currency>(CurrenciesCacheKey, cancellationToken)).Select(ToResponse).ToArray();
+        await GetListAsync<Currency, CurrencyResponse>(CurrenciesCacheKey, ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<CurrencyResponse?> GetCurrencyAsync(int id, CancellationToken cancellationToken) =>
@@ -81,7 +82,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialGroupResponse>> GetMaterialGroupsAsync(CancellationToken cancellationToken) =>
-        (await GetListAsync<MaterialGroup>(MaterialGroupsCacheKey, cancellationToken)).Select(ToResponse).ToArray();
+        await GetListAsync<MaterialGroup, MaterialGroupResponse>(MaterialGroupsCacheKey, ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<MaterialGroupResponse?> GetMaterialGroupAsync(int id, CancellationToken cancellationToken) =>
@@ -113,7 +114,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ColorResponse>> GetColorsAsync(CancellationToken cancellationToken) =>
-        (await GetListAsync<Color>(ColorsCacheKey, cancellationToken)).Select(ToResponse).ToArray();
+        await GetListAsync<Color, ColorResponse>(ColorsCacheKey, ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<ColorResponse?> GetColorAsync(int id, CancellationToken cancellationToken) =>
@@ -144,7 +145,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<SurfaceFinishResponse>> GetSurfaceFinishesAsync(CancellationToken cancellationToken) =>
-        (await GetListAsync<SurfaceFinish>(SurfaceFinishesCacheKey, cancellationToken)).Select(ToResponse).ToArray();
+        await GetListAsync<SurfaceFinish, SurfaceFinishResponse>(SurfaceFinishesCacheKey, ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<SurfaceFinishResponse?> GetSurfaceFinishAsync(int id, CancellationToken cancellationToken) =>
@@ -176,7 +177,7 @@ public sealed class CatalogApplicationService(
     /// <inheritdoc />
     public async Task<PaginatedMaterialResponse> GetMaterialsAsync(MaterialSortType? sort, string? search, int? index, int? size, CancellationToken cancellationToken)
     {
-        IEnumerable<Material> query = await GetMaterialsWithGroupsAsync(cancellationToken);
+        IEnumerable<MaterialResponse> query = await GetMaterialsWithGroupsAsync(cancellationToken);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var value = search.Trim();
@@ -188,7 +189,7 @@ public sealed class CatalogApplicationService(
         var pageIndex = Math.Max(index ?? 1, 1);
         var pageSize = Math.Max(size ?? materialArray.Length, 1);
         var totalPages = materialArray.Length == 0 ? 0 : (int)Math.Ceiling(materialArray.Length / (double)pageSize);
-        var items = materialArray.Skip((pageIndex - 1) * pageSize).Take(pageSize).Select(ToResponse).ToArray();
+        var items = materialArray.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToArray();
         return new(items, pageIndex, totalPages, materialArray.Length, pageIndex < totalPages, pageIndex > 1);
     }
 
@@ -198,11 +199,11 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialResponse>> GetMachinableMaterialsAsync(CancellationToken cancellationToken) =>
-        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Machinable).Select(ToResponse).ToArray();
+        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Machinable).ToArray();
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialResponse>> GetPrintableMaterialsAsync(CancellationToken cancellationToken) =>
-        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Printable).Select(ToResponse).ToArray();
+        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Printable).ToArray();
 
     /// <inheritdoc />
     public async Task<MaterialResponse> CreateMaterialAsync(UpsertMaterialRequest request, CancellationToken cancellationToken)
@@ -302,15 +303,19 @@ public sealed class CatalogApplicationService(
 
     private DateTime UtcNow => DateTime.SpecifyKind(timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Unspecified);
 
-    private async Task<IReadOnlyList<TEntity>> GetListAsync<TEntity>(string key, CancellationToken cancellationToken) where TEntity : class
+    private async Task<IReadOnlyList<TResponse>> GetListAsync<TEntity, TResponse>(
+        string key,
+        Func<TEntity, TResponse> toResponse,
+        CancellationToken cancellationToken)
+        where TEntity : class
     {
-        var cached = cache is null ? null : await cache.GetAsync<TEntity[]>(key, cancellationToken);
+        var cached = cache is null ? null : await cache.GetAsync<TResponse[]>(key, cancellationToken);
         if (cached is not null)
         {
             return cached;
         }
 
-        var values = (await repository.ListAsync<TEntity>(cancellationToken)).ToArray();
+        var values = (await repository.ListAsync<TEntity>(cancellationToken)).Select(toResponse).ToArray();
         if (cache is not null)
         {
             await cache.SetAsync(key, values, cancellationToken);
@@ -319,15 +324,15 @@ public sealed class CatalogApplicationService(
         return values;
     }
 
-    private async Task<IReadOnlyList<Material>> GetMaterialsWithGroupsAsync(CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<MaterialResponse>> GetMaterialsWithGroupsAsync(CancellationToken cancellationToken)
     {
-        var cached = cache is null ? null : await cache.GetAsync<Material[]>(MaterialsCacheKey, cancellationToken);
+        var cached = cache is null ? null : await cache.GetAsync<MaterialResponse[]>(MaterialsCacheKey, cancellationToken);
         if (cached is not null)
         {
             return cached;
         }
 
-        var values = (await repository.ListMaterialsAsync(cancellationToken)).ToArray();
+        var values = (await repository.ListMaterialsAsync(cancellationToken)).Select(ToResponse).ToArray();
         if (cache is not null)
         {
             await cache.SetAsync(MaterialsCacheKey, values, cancellationToken);
@@ -432,7 +437,7 @@ public sealed class CatalogApplicationService(
         entity.ModifiedDate = UtcNow;
     }
 
-    private static IEnumerable<Material> ApplySort(IEnumerable<Material> materials, MaterialSortType? sort) => sort switch
+    private static IEnumerable<MaterialResponse> ApplySort(IEnumerable<MaterialResponse> materials, MaterialSortType? sort) => sort switch
     {
         MaterialSortType.MaterialId_Descending => materials.OrderByDescending(value => value.Id),
         MaterialSortType.MaterialMachinability_Ascending => materials.OrderBy(value => value.MachinabilityPercent),
@@ -454,7 +459,7 @@ public sealed class CatalogApplicationService(
         _ => materials.OrderBy(value => value.Id),
     };
 
-    private static IEnumerable<string?> SearchableValues(Material value) =>
+    private static IEnumerable<string?> SearchableValues(MaterialResponse value) =>
         [value.Name, value.MaterialGroup?.Name, value.MaterialNumber, value.Aisi, value.Din, value.Bts, value.Jis, value.Uns, value.En, value.Afnor, value.Uni, value.Sis, value.Sae, value.Astm, value.Ams, value.Comment];
 
     private static CountryResponse ToResponse(Country value) => new(value.Id, value.Name, value.Continent, value.CountryCode, value.Iso2, value.Iso3, value.CreatedDate, value.ModifiedDate);

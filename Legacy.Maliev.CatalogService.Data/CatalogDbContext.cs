@@ -39,7 +39,7 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
         ConfigureMaterialHasSurfaceFinish(modelBuilder);
     }
 
-    private static void ConfigureCountry(ModelBuilder modelBuilder)
+    internal static void ConfigureCountry(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<Country>();
         ConfigureLegacyEntity(entity, "Country");
@@ -50,7 +50,7 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
         entity.Property(value => value.Iso3).HasColumnName("ISO3").HasColumnType("character(3)").HasMaxLength(3);
     }
 
-    private static void ConfigureCurrency(ModelBuilder modelBuilder)
+    internal static void ConfigureCurrency(ModelBuilder modelBuilder)
     {
         var entity = modelBuilder.Entity<Currency>();
         ConfigureLegacyEntity(entity, "Currency");

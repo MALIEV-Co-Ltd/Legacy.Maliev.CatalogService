@@ -27,8 +27,8 @@ public sealed class CatalogApplicationServiceTests
     {
         var repository = new Mock<ICatalogRepository>(MockBehavior.Strict);
         var cache = new Mock<ICatalogCache>();
-        cache.Setup(value => value.GetAsync<Country[]>("countries:all:v1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new Country { Id = 1, Name = "Thailand" }]);
+        cache.Setup(value => value.GetAsync<CountryResponse[]>("countries:all:v1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new CountryResponse(1, "Thailand", null, null, null, null, null, null)]);
         var service = new CatalogApplicationService(repository.Object, TimeProvider.System, cache.Object);
 
         var countries = await service.GetCountriesAsync(CancellationToken.None);
@@ -75,6 +75,51 @@ public sealed class CatalogApplicationServiceTests
         Assert.False(page.HasPreviousPage);
         Assert.Single(page.Items);
         Assert.Equal("316", page.Items[0].MaterialNumber);
+    }
+
+    [Fact]
+    public async Task GetMaterialsAsync_CyclicEfGraph_CachesCompleteResponseInsteadOfNavigationGraph()
+    {
+        var group = new MaterialGroup { Id = 7, Name = "Steel", Description = "Ferrous" };
+        var material = new Material
+        {
+            Id = 3,
+            Name = "Steel 316",
+            MaterialNumber = "316",
+            PricePerKilogram = 125.50m,
+            CurrencyId = 138,
+            MaterialGroupId = group.Id,
+            MaterialGroup = group,
+        };
+        group.Materials.Add(material);
+
+        var repository = new Mock<ICatalogRepository>();
+        repository.Setup(value => value.ListMaterialsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([material]);
+        var cache = new Mock<ICatalogCache>();
+        cache.Setup(value => value.GetAsync<MaterialResponse[]>("materials:all:v1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MaterialResponse[]?)null);
+        MaterialResponse[]? cached = null;
+        cache.Setup(value => value.SetAsync(
+                "materials:all:v1",
+                It.IsAny<MaterialResponse[]>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<string, MaterialResponse[], CancellationToken>((_, value, _) => cached = value)
+            .Returns(Task.CompletedTask);
+        var service = new CatalogApplicationService(repository.Object, TimeProvider.System, cache.Object);
+
+        var page = await service.GetMaterialsAsync(null, null, 1, 25, CancellationToken.None);
+
+        var response = Assert.Single(page.Items);
+        Assert.Equal(125.50m, response.PricePerKilogram);
+        Assert.Equal(138, response.CurrencyId);
+        Assert.Equal("Steel", response.MaterialGroup?.Name);
+        Assert.Equal("Ferrous", response.MaterialGroup?.Description);
+        Assert.Equal(response, Assert.Single(Assert.IsType<MaterialResponse[]>(cached)));
+        cache.Verify(value => value.SetAsync(
+            "materials:all:v1",
+            It.IsAny<MaterialResponse[]>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
