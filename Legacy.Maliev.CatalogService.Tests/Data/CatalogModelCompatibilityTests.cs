@@ -63,6 +63,25 @@ public sealed class CatalogModelCompatibilityTests
     }
 
     [Fact]
+    public void LookupContexts_MapOnlyTheirOwnedExact23DatabaseEntity()
+    {
+        var countryOptions = new DbContextOptionsBuilder<CatalogCountryDbContext>()
+            .UseNpgsql("Host=localhost;Database=unused")
+            .Options;
+        var currencyOptions = new DbContextOptionsBuilder<CatalogCurrencyDbContext>()
+            .UseNpgsql("Host=localhost;Database=unused")
+            .Options;
+
+        using var countryContext = new CatalogCountryDbContext(countryOptions);
+        using var currencyContext = new CatalogCurrencyDbContext(currencyOptions);
+
+        Assert.Equal([typeof(Country)], countryContext.Model.GetEntityTypes().Select(entity => entity.ClrType));
+        Assert.Equal([typeof(Currency)], currencyContext.Model.GetEntityTypes().Select(entity => entity.ClrType));
+        Assert.Equal("Country", countryContext.Model.FindEntityType(typeof(Country))?.GetTableName());
+        Assert.Equal("Currency", currencyContext.Model.FindEntityType(typeof(Currency))?.GetTableName());
+    }
+
+    [Fact]
     public void TimestampMigration_DropsDefaultsBeforeUtcPreservingTypeConversion()
     {
         var migration = File.ReadAllText(FindRepositoryFile(

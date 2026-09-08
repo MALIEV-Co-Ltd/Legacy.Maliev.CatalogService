@@ -62,6 +62,23 @@ public sealed class WorkflowContractTests
     }
 
     [Fact]
+    public void Api_RequiresIndependentPostgreSqlConnectionsForExact23CatalogDatabases()
+    {
+        Assert.Contains(
+            "AddPostgresDbContext<CatalogDbContext>(connectionName: \"CatalogDbContext\")",
+            ApiProgram,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AddPostgresDbContext<CatalogCountryDbContext>(connectionName: \"CountryDbContext\")",
+            ApiProgram,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "AddPostgresDbContext<CatalogCurrencyDbContext>(connectionName: \"CurrencyDbContext\")",
+            ApiProgram,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildAndTest_RejectsJobPermissionEscalation()
     {
         AssertMutationRejected(

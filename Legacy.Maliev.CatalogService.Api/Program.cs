@@ -9,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddDefaultApiVersioning();
 builder.AddPostgresDbContext<CatalogDbContext>(connectionName: "CatalogDbContext");
+builder.AddPostgresDbContext<CatalogCountryDbContext>(connectionName: "CountryDbContext");
+builder.AddPostgresDbContext<CatalogCurrencyDbContext>(connectionName: "CurrencyDbContext");
 builder.AddStandardCache("legacy:catalog:");
 builder.AddStandardCors();
 builder.AddJwtAuthentication();
