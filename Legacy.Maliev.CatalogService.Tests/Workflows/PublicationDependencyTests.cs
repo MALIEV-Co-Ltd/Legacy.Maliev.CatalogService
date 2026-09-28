@@ -22,10 +22,16 @@ public sealed class PublicationDependencyTests
         Assert.Equal("vars.LEGACY_DEPLOY_ENABLED == 'true'", Value(publish, "if"));
         Assert.Equal("MALIEV-Co-Ltd/Legacy.Maliev.Workflows/.github/workflows/publish-image.yml@6e3bb55f5ff3ee2b69dd6b4aee6333777ba0ed36", Value(publish, "uses"));
         var inputs = (YamlMappingNode)publish.Children[new YamlScalarNode("with")];
-        Assert.Equal("5c5f9479313710fa576f83d3b396442997a2fcf4", Value(inputs, "legacy-service-defaults-ref"));
+        Assert.Equal("003b255f0fb0f0bce032f5b5ff15d28be0c8c391", Value(inputs, "legacy-service-defaults-ref"));
         Assert.Equal("78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7", Value(inputs, "compatibility-contracts-ref"));
         Assert.Equal(".", Value(inputs, "context"));
         Assert.Equal("legacy-production", Value(inputs, "environment"));
+
+        var dockerfile = File.ReadAllText(Path.Combine(root.FullName, "Legacy.Maliev.CatalogService.Api", "Dockerfile"));
+        Assert.Contains("COPY Directory.Build.props .", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("RUN dotnet restore", dockerfile, StringComparison.Ordinal);
+        Assert.True(dockerfile.IndexOf("COPY Directory.Build.props .", StringComparison.Ordinal) <
+                    dockerfile.IndexOf("RUN dotnet restore", StringComparison.Ordinal));
     }
 
     private static string? Value(YamlMappingNode mapping, string key) =>

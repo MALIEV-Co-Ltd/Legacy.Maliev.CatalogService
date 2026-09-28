@@ -3,6 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 ENV GITHUB_ACTIONS=false
 COPY nuget.config .
+COPY Directory.Build.props .
 COPY .dependencies/ .dependencies/
 COPY Legacy.Maliev.CatalogService.Api/Legacy.Maliev.CatalogService.Api.csproj Legacy.Maliev.CatalogService.Api/
 COPY Legacy.Maliev.CatalogService.Application/Legacy.Maliev.CatalogService.Application.csproj Legacy.Maliev.CatalogService.Application/
