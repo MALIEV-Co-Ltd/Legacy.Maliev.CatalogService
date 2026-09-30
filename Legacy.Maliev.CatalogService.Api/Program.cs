@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Legacy.Maliev.CatalogService.Application.Interfaces;
 using Legacy.Maliev.CatalogService.Application.Services;
 using Legacy.Maliev.CatalogService.Data;
+using Legacy.Maliev.CatalogService.Api;
 using Maliev.Aspire.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +35,8 @@ builder.Services.AddHttpClient<IExchangeRateClient, FrankfurterExchangeRateClien
 builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 builder.Services.AddScoped<ICatalogCache, DistributedCatalogCache>();
 builder.Services.AddScoped<ICatalogService, CatalogApplicationService>();
+builder.Services.AddScoped<InstantQuotationCatalogReconciler>();
+builder.Services.AddHostedService<InstantQuotationCatalogStartupService>();
 
 var app = builder.Build();
 
