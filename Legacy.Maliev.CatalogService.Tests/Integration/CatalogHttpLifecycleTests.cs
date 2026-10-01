@@ -290,7 +290,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
     }
 
     [Fact]
-    public async Task InvalidUpdate_LeavesPersistedValuesAndPrimedActualCacheUnchanged()
+    public async Task InvalidUpdate_PreservesPersistedValuesAndAuthoritativeCollectionRead()
     {
         using var client = fixture.CreateClient("legacy-catalog.colors.create", "legacy-catalog.colors.read", "legacy-catalog.colors.update");
         var id = await CreateAsync(client, "/materials/Colors", new { Name = "Black" });
@@ -305,8 +305,8 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
         using var invalid = await client.PutAsJsonAsync($"/materials/Colors/{id}", new { Name = " " });
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
         Assert.Equal("Stored-only change", (await fixture.StoredAsync("colors", id)).GetProperty("Name").GetString());
-        using var retained = await client.GetAsync("/materials/Colors");
-        Assert.Equal("Black", Assert.Single((await ReadObjectAsync(retained)).EnumerateArray()).GetProperty("Name").GetString());
+        using var authoritative = await client.GetAsync("/materials/Colors");
+        Assert.Equal("Stored-only change", Assert.Single((await ReadObjectAsync(authoritative)).EnumerateArray()).GetProperty("Name").GetString());
     }
 
     private static async Task<int> CreateAsync(HttpClient client, string route, object payload)

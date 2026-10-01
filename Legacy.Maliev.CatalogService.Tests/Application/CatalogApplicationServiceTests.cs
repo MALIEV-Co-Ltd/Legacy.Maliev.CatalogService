@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Legacy.Maliev.CatalogService.Application.Interfaces;
 using Legacy.Maliev.CatalogService.Application.Models;
 using Legacy.Maliev.CatalogService.Application.Services;
@@ -78,7 +79,7 @@ public sealed class CatalogApplicationServiceTests
     }
 
     [Fact]
-    public async Task GetMaterialsAsync_CyclicEfGraph_CachesCompleteResponseInsteadOfNavigationGraph()
+    public async Task GetMaterialsAsync_CyclicEfGraph_UsesRepositoryProjectionRatherThanStaleCache()
     {
         var group = new MaterialGroup { Id = 7, Name = "Steel", Description = "Ferrous" };
         var material = new Material
@@ -98,14 +99,7 @@ public sealed class CatalogApplicationServiceTests
             .ReturnsAsync([material]);
         var cache = new Mock<ICatalogCache>();
         cache.Setup(value => value.GetAsync<MaterialResponse[]>("materials:all:v1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((MaterialResponse[]?)null);
-        MaterialResponse[]? cached = null;
-        cache.Setup(value => value.SetAsync(
-                "materials:all:v1",
-                It.IsAny<MaterialResponse[]>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<string, MaterialResponse[], CancellationToken>((_, value, _) => cached = value)
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(JsonSerializer.Deserialize<MaterialResponse[]>("[{\"Id\":3,\"Name\":\"Stale steel\",\"PricePerKilogram\":1,\"CurrencyId\":17,\"MaterialGroup\":{\"Id\":7,\"Name\":\"Old group\"}}]")!);
         var service = new CatalogApplicationService(repository.Object, TimeProvider.System, cache.Object);
 
         var page = await service.GetMaterialsAsync(null, null, 1, 25, CancellationToken.None);
@@ -115,11 +109,15 @@ public sealed class CatalogApplicationServiceTests
         Assert.Equal(138, response.CurrencyId);
         Assert.Equal("Steel", response.MaterialGroup?.Name);
         Assert.Equal("Ferrous", response.MaterialGroup?.Description);
-        Assert.Equal(response, Assert.Single(Assert.IsType<MaterialResponse[]>(cached)));
+        Assert.Equal("Steel 316", response.Name);
+        Assert.Equal("316", response.MaterialNumber);
+        Assert.Contains("Steel", JsonSerializer.Serialize(response)); // Cyclic EF navigation is not leaked into the DTO.
+        repository.Verify(value => value.ListMaterialsAsync(It.IsAny<CancellationToken>()), Times.Once);
+        cache.Verify(value => value.GetAsync<MaterialResponse[]>("materials:all:v1", It.IsAny<CancellationToken>()), Times.Never);
         cache.Verify(value => value.SetAsync(
             "materials:all:v1",
             It.IsAny<MaterialResponse[]>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
