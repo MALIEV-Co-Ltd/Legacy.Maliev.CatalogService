@@ -82,7 +82,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialGroupResponse>> GetMaterialGroupsAsync(CancellationToken cancellationToken) =>
-        await GetListAsync<MaterialGroup, MaterialGroupResponse>(MaterialGroupsCacheKey, ToResponse, cancellationToken);
+        await GetRepositoryListAsync<MaterialGroup, MaterialGroupResponse>(ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<MaterialGroupResponse?> GetMaterialGroupAsync(int id, CancellationToken cancellationToken) =>
@@ -114,7 +114,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ColorResponse>> GetColorsAsync(CancellationToken cancellationToken) =>
-        await GetListAsync<Color, ColorResponse>(ColorsCacheKey, ToResponse, cancellationToken);
+        await GetRepositoryListAsync<Color, ColorResponse>(ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<ColorResponse?> GetColorAsync(int id, CancellationToken cancellationToken) =>
@@ -145,7 +145,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<SurfaceFinishResponse>> GetSurfaceFinishesAsync(CancellationToken cancellationToken) =>
-        await GetListAsync<SurfaceFinish, SurfaceFinishResponse>(SurfaceFinishesCacheKey, ToResponse, cancellationToken);
+        await GetRepositoryListAsync<SurfaceFinish, SurfaceFinishResponse>(ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<SurfaceFinishResponse?> GetSurfaceFinishAsync(int id, CancellationToken cancellationToken) =>
@@ -324,22 +324,13 @@ public sealed class CatalogApplicationService(
         return values;
     }
 
-    private async Task<IReadOnlyList<MaterialResponse>> GetMaterialsWithGroupsAsync(CancellationToken cancellationToken)
-    {
-        var cached = cache is null ? null : await cache.GetAsync<MaterialResponse[]>(MaterialsCacheKey, cancellationToken);
-        if (cached is not null)
-        {
-            return cached;
-        }
+    // Material-owner collections must reflect committed state even after failed invalidation or a late old fill.
+    private async Task<IReadOnlyList<TResponse>> GetRepositoryListAsync<TEntity, TResponse>(
+        Func<TEntity, TResponse> toResponse, CancellationToken cancellationToken) where TEntity : class =>
+        (await repository.ListAsync<TEntity>(cancellationToken)).Select(toResponse).ToArray();
 
-        var values = (await repository.ListMaterialsAsync(cancellationToken)).Select(ToResponse).ToArray();
-        if (cache is not null)
-        {
-            await cache.SetAsync(MaterialsCacheKey, values, cancellationToken);
-        }
-
-        return values;
-    }
+    private async Task<IReadOnlyList<MaterialResponse>> GetMaterialsWithGroupsAsync(CancellationToken cancellationToken) =>
+        (await repository.ListMaterialsAsync(cancellationToken)).Select(ToResponse).ToArray();
 
     private async Task AddAsync<TEntity>(TEntity entity, CancellationToken cancellationToken) where TEntity : class
     {
