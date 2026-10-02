@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <ProjectReference Include="..\Legacy.Maliev.CatalogService.Application\Legacy.Maliev.CatalogService.Application.csproj" />
     <ProjectReference Include="..\Legacy.Maliev.CatalogService.Data\Legacy.Maliev.CatalogService.Data.csproj" />
   </ItemGroup>
