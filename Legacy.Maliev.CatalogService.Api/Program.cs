@@ -19,6 +19,14 @@ builder.AddStandardMiddleware(options => options.EnableRequestLogging = true);
 builder.AddStandardOpenApi(
     title: "Legacy MALIEV Catalog Service API",
     description: "Temporary .NET 10 compatibility service preserving legacy country, currency, and material API contracts.");
+// The application-owned literal call activates its generated XML documentation transformers.
+builder.Services.AddOpenApi("v1");
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.SerializerOptions.PropertyNamingPolicy = null;
+    options.SerializerOptions.DictionaryKeyPolicy = null;
+});
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
