@@ -11,3 +11,7 @@ TestResults
 *.key
 *.pem
 .env
+**/.git
+**/.env
+**/.env.*
+**/*.env
