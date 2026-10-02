@@ -6,6 +6,40 @@ namespace Legacy.Maliev.CatalogService.Data;
 /// <summary>Reconciles reviewed additive offers without replacing legacy identities or commercial data.</summary>
 public sealed class InstantQuotationCatalogReconciler(DbContextOptions<CatalogDbContext> options, TimeProvider timeProvider)
 {
+    /// <summary>Validates required stored offers without tracking, locks, repairs or writes.</summary>
+    /// <param name="cancellationToken">Cancels validation and its database reads.</param>
+    public async Task ValidateAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        const string failureCode = "InstantQuotationCatalogReconciliationRequired";
+        await using var context = new CatalogDbContext(options);
+        var definitions = InstantQuotationMaterialCatalog.Materials;
+        var groups = Unique(await context.MaterialGroups.AsNoTracking().ToListAsync(cancellationToken),
+            row => row.Name, ["Plastics"], failureCode);
+        var materials = Unique(await context.Materials.AsNoTracking().ToListAsync(cancellationToken),
+            row => row.Name, definitions.Select(row => row.Name), failureCode);
+        var requiredColors = definitions.SelectMany(row => row.Colors).Distinct(StringComparer.OrdinalIgnoreCase);
+        var colors = Unique(await context.Colors.AsNoTracking().ToListAsync(cancellationToken),
+            row => row.Name, requiredColors, failureCode);
+        var finishes = Unique(await context.SurfaceFinishes.AsNoTracking().ToListAsync(cancellationToken),
+            row => row.Name, ["As printed"], failureCode);
+        var colorLinks = (await context.MaterialHasColors.AsNoTracking().ToListAsync(cancellationToken))
+            .Select(row => (row.MaterialId, row.ColorId)).ToHashSet();
+        var finishLinks = (await context.MaterialHasSurfaceFinishes.AsNoTracking().ToListAsync(cancellationToken))
+            .Select(row => (row.MaterialId, row.SurfaceFinishId)).ToHashSet();
+        if (!groups.TryGetValue("Plastics", out var plastics) || !finishes.TryGetValue("As printed", out var asPrinted))
+            throw new InvalidOperationException(failureCode);
+        foreach (var definition in definitions)
+        {
+            if (!materials.TryGetValue(definition.Name, out var material) || !material.Printable ||
+                material.MaterialGroupId != plastics.Id ||
+                (material.DensityKilogramPerCubicMeter is null && definition.Density is not null) ||
+                definition.Colors.Any(name => !colors.TryGetValue(name, out var color) || !colorLinks.Contains((material.Id, color.Id))) ||
+                !finishLinks.Contains((material.Id, asPrinted.Id)))
+                throw new InvalidOperationException(failureCode);
+        }
+    }
+
     /// <summary>Atomically reconciles under ordinary-writer-compatible locks, using a fresh context on each retry.</summary>
     public async Task ReconcileAsync(CancellationToken cancellationToken)
     {
@@ -97,7 +131,8 @@ public sealed class InstantQuotationCatalogReconciler(DbContextOptions<CatalogDb
         await context.SaveChangesAsync(token);
     }
 
-    private static Dictionary<string, T> Unique<T>(IEnumerable<T> rows, Func<T, string> name, IEnumerable<string> required)
+    private static Dictionary<string, T> Unique<T>(IEnumerable<T> rows, Func<T, string> name, IEnumerable<string> required,
+        string? validationFailureCode = null)
     {
         var wanted = required.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var result = new Dictionary<string, T>(StringComparer.OrdinalIgnoreCase);
@@ -105,7 +140,7 @@ public sealed class InstantQuotationCatalogReconciler(DbContextOptions<CatalogDb
         {
             string key = name(row);
             if (wanted.Contains(key) && !result.TryAdd(key, row))
-                throw new InvalidOperationException($"Ambiguous {typeof(T).Name} catalog name '{key}'; reconciliation refused.");
+                throw new InvalidOperationException(validationFailureCode ?? $"Ambiguous {typeof(T).Name} catalog name '{key}'; reconciliation refused.");
         }
         return result;
     }

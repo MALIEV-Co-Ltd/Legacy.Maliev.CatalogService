@@ -9,6 +9,12 @@ public sealed class InstantQuotationCatalogStartupService(IServiceScopeFactory s
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        if (string.Equals(Environment.GetEnvironmentVariable("MALIEV_OBSERVABILITY_READ_ONLY_STARTUP"), "true", StringComparison.Ordinal))
+        {
+            await using var readOnlyScope = scopes.CreateAsyncScope();
+            await readOnlyScope.ServiceProvider.GetRequiredService<InstantQuotationCatalogReconciler>().ValidateAsync(cancellationToken);
+            return;
+        }
         if (!configuration.GetValue<bool>("InstantQuotationCatalog:ReconciliationEnabled")) return;
         await using var scope = scopes.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<InstantQuotationCatalogReconciler>().ReconcileAsync(cancellationToken);
