@@ -36,6 +36,18 @@ public sealed class WorkflowContractTests
     }
 
     [Fact]
+    public void BuildAndTest_RejectsMissingCoverageCollection()
+    {
+        AssertMutationRejected("      VSTestCollect: XPlat Code Coverage\n", "");
+    }
+
+    [Fact]
+    public void BuildAndTest_RejectsEvidenceOnlyOnSuccess()
+    {
+        AssertMutationRejected("        if: always()", "        if: success()");
+    }
+
+    [Fact]
     public void ApiProject_UsesOnlyLegacyServiceDefaults()
     {
         Assert.Contains("Legacy.Maliev.ServiceDefaults", ApiProject, StringComparison.Ordinal);
@@ -213,10 +225,49 @@ internal static partial class WorkflowContractValidator
         RejectDuplicatedValidationActionsAndCommands(jobs);
 
         var steps = RequireSequence(validateJob, "steps");
-        if (steps.Children.Count != 4)
+        if (steps.Children.Count != 6)
         {
-            throw new InvalidOperationException("Validate job must contain exactly four caller-owned steps.");
+            throw new InvalidOperationException("Validate job must contain four validation and two evidence steps.");
         }
+
+        var environment = RequireMapping(validateJob, "env");
+        if (environment.Children.Count != 4)
+        {
+            throw new InvalidOperationException("Validate environment must contain only dependency root and evidence properties.");
+        }
+
+        RequireScalarValue(environment, "MalievWorkspaceRoot", "${{ github.workspace }}/.dependencies");
+        RequireScalarValue(environment, "VSTestCollect", "XPlat Code Coverage");
+        RequireScalarValue(environment, "VSTestLogger", "trx");
+        RequireScalarValue(environment, "VSTestResultsDirectory", "${{ github.workspace }}/runner-results");
+
+        var gate = RequireMapping(steps.Children[4], "coverage gate");
+        if (gate.Children.Count != 2)
+        {
+            throw new InvalidOperationException("Coverage gate must contain only name and run.");
+        }
+
+        RequireScalarValue(gate, "name", "Gate owned production coverage");
+        RequireScalarValue(gate, "run", "python3 scripts/verify-runner-coverage.py runner-results");
+        var evidence = RequireMapping(steps.Children[5], "evidence upload");
+        if (evidence.Children.Count != 4)
+        {
+            throw new InvalidOperationException("Evidence upload must contain exactly name, if, uses and with.");
+        }
+
+        RequireScalarValue(evidence, "name", "Preserve validation evidence");
+        RequireScalarValue(evidence, "if", "always()");
+        RequireScalarValue(evidence, "uses", "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
+        var evidenceInputs = RequireMapping(evidence, "with");
+        if (evidenceInputs.Children.Count != 4)
+        {
+            throw new InvalidOperationException("Evidence upload must have exactly four bounded inputs.");
+        }
+
+        RequireScalarValue(evidenceInputs, "name", "catalog-validation-${{ github.sha }}");
+        RequireScalarValue(evidenceInputs, "path", "runner-results");
+        RequireScalarValue(evidenceInputs, "if-no-files-found", "warn");
+        RequireScalarValue(evidenceInputs, "retention-days", "7");
 
         ValidateStep(
             steps.Children[0],
