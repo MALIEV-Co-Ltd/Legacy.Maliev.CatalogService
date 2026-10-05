@@ -36,6 +36,18 @@ public sealed class WorkflowContractTests
     }
 
     [Fact]
+    public void BuildAndTest_RejectsMissingCoverageCollection()
+    {
+        AssertMutationRejected("      VSTestCollect: XPlat Code Coverage\n", "");
+    }
+
+    [Fact]
+    public void BuildAndTest_RejectsEvidenceOnlyOnSuccess()
+    {
+        AssertMutationRejected("        if: always()", "        if: success()");
+    }
+
+    [Fact]
     public void ApiProject_UsesOnlyLegacyServiceDefaults()
     {
         Assert.Contains("Legacy.Maliev.ServiceDefaults", ApiProject, StringComparison.Ordinal);
