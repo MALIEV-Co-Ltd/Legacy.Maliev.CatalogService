@@ -178,9 +178,9 @@ public sealed class CatalogApplicationService(
     public async Task<PaginatedMaterialResponse> GetMaterialsAsync(MaterialSortType? sort, string? search, int? index, int? size, CancellationToken cancellationToken)
     {
         IEnumerable<MaterialResponse> query = await GetMaterialsWithGroupsAsync(cancellationToken);
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrEmpty(search))
         {
-            var value = search.Trim();
+            var value = search;
             query = query.Where(material => SearchableValues(material).Any(field => field?.Contains(value, StringComparison.OrdinalIgnoreCase) == true));
         }
 
