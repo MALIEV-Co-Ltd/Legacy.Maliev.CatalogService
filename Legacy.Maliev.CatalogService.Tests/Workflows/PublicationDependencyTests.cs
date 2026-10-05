@@ -38,7 +38,7 @@ public sealed class PublicationDependencyTests
         Assert.Equal(8, inputs.Children.Count);
         Assert.Equal("${{ vars.LEGACY_ARTIFACT_REGISTRY }}/legacy-maliev-catalog-service", Value(inputs, "image"));
         Assert.Equal("Legacy.Maliev.CatalogService.Api/Dockerfile", Value(inputs, "dockerfile"));
-        Assert.Equal("003b255f0fb0f0bce032f5b5ff15d28be0c8c391", Value(inputs, "legacy-service-defaults-ref"));
+        Assert.Equal("7edcd961024868513fd5f373cab3dcb261197f77", Value(inputs, "legacy-service-defaults-ref"));
         Assert.Equal("78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7", Value(inputs, "compatibility-contracts-ref"));
         Assert.Equal(".", Value(inputs, "context"));
         Assert.Equal("legacy-production", Value(inputs, "environment"));
