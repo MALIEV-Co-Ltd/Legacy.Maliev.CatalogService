@@ -101,7 +101,7 @@ internal sealed class CatalogDocumentationHost : IDisposable
         {
             builder.UseEnvironment(environment);
             // Closed loopback port: metadata/auth tests must never connect to or mutate any database.
-            const string connection = "Host=127.0.0.1;Port=1;Database=catalog_metadata_fixture;Username=fixture;Password=fixture;Pooling=false";
+            const string connection = "Host=127.0.0.1;Port=1;Database=catalog_metadata_fixture;Username=fixture;Pooling=false";
             foreach (var setting in new Dictionary<string, string>
             {
                 ["ConnectionStrings:CatalogDbContext"] = connection,
