@@ -23,16 +23,16 @@ public sealed class WorkflowContractTests
     public void BuildAndTest_RejectsSharedActionMainWithPinnedShaComment()
     {
         AssertMutationRejected(
-            "MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@73dd7304ffe85ec504389fd7664cc39070b9f148",
-            "MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@main # 73dd7304ffe85ec504389fd7664cc39070b9f148");
+            "MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@e3a6093324a24968876782153286f52db8b29fd8",
+            "MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@main # e3a6093324a24968876782153286f52db8b29fd8");
     }
 
     [Fact]
     public void BuildAndTest_RejectsCommentedDependencySha()
     {
         AssertMutationRejected(
-            "ref: 003b255f0fb0f0bce032f5b5ff15d28be0c8c391",
-            "ref: main # 003b255f0fb0f0bce032f5b5ff15d28be0c8c391");
+            "ref: 7edcd961024868513fd5f373cab3dcb261197f77",
+            "ref: main # 7edcd961024868513fd5f373cab3dcb261197f77");
     }
 
     [Fact]
@@ -138,6 +138,20 @@ public sealed class WorkflowContractTests
             "          use-local-maliev-dependencies: 'true'\n        env:\n          GITHUB_ACTIONS: 'false'\n");
     }
 
+    [Fact]
+    public void BuildAndTest_RejectsMissingProductionCoverageGate()
+    {
+        AssertMutationRejected(
+            "      - name: Gate owned production coverage\n        run: python3 -B scripts/verify-runner-coverage.py runner-results\n",
+            string.Empty);
+    }
+
+    [Fact]
+    public void BuildAndTest_RejectsFailureOnlyEvidenceRetention()
+    {
+        AssertMutationRejected("        if: always()\n", "        if: failure()\n");
+    }
+
     private static void AssertMutationRejected(string original, string replacement)
     {
         Assert.Contains(original, Workflow, StringComparison.Ordinal);
@@ -168,7 +182,7 @@ public sealed class WorkflowContractTests
 internal static partial class WorkflowContractValidator
 {
     private const string CheckoutAction = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1";
-    private const string SharedValidationAction = "MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@73dd7304ffe85ec504389fd7664cc39070b9f148";
+    private const string SharedValidationAction = "MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@e3a6093324a24968876782153286f52db8b29fd8";
 
     public static void Validate(string workflow)
     {
@@ -210,12 +224,18 @@ internal static partial class WorkflowContractValidator
         }
 
         RequireScalarValue(validateJob, "name", "validate");
+        var environment = RequireMapping(validateJob, "env");
+        if (environment.Children.Count != 4) throw new InvalidOperationException("Require exact local dependency and raw evidence environment.");
+        RequireScalarValue(environment, "MalievWorkspaceRoot", "${{ github.workspace }}/.dependencies");
+        RequireScalarValue(environment, "VSTestCollect", "XPlat Code Coverage");
+        RequireScalarValue(environment, "VSTestLogger", "trx");
+        RequireScalarValue(environment, "VSTestResultsDirectory", "${{ github.workspace }}/runner-results");
         RejectDuplicatedValidationActionsAndCommands(jobs);
 
         var steps = RequireSequence(validateJob, "steps");
-        if (steps.Children.Count != 4)
+        if (steps.Children.Count != 6)
         {
-            throw new InvalidOperationException("Validate job must contain exactly four caller-owned steps.");
+            throw new InvalidOperationException("Validate job must contain exactly six caller-owned steps.");
         }
 
         ValidateStep(
@@ -231,7 +251,7 @@ internal static partial class WorkflowContractValidator
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["repository"] = "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults",
-                ["ref"] = "003b255f0fb0f0bce032f5b5ff15d28be0c8c391",
+                ["ref"] = "7edcd961024868513fd5f373cab3dcb261197f77",
                 ["path"] = ".dependencies/Legacy.Maliev.ServiceDefaults",
                 ["persist-credentials"] = "false",
             });
@@ -253,6 +273,21 @@ internal static partial class WorkflowContractValidator
                 ["solution"] = "Legacy.Maliev.CatalogService.slnx",
                 ["use-local-maliev-dependencies"] = "true",
             });
+        var gate = RequireMapping(steps.Children[4], "coverage gate");
+        if (gate.Children.Count != 2) throw new InvalidOperationException("Coverage gate must only name and execute the owned validator.");
+        RequireScalarValue(gate, "name", "Gate owned production coverage");
+        RequireScalarValue(gate, "run", "python3 -B scripts/verify-runner-coverage.py runner-results");
+        var artifact = RequireMapping(steps.Children[5], "validation artifact");
+        if (artifact.Children.Count != 4) throw new InvalidOperationException("Evidence retention must remain unconditional.");
+        RequireScalarValue(artifact, "name", "Preserve validation evidence");
+        RequireScalarValue(artifact, "if", "always()");
+        RequireScalarValue(artifact, "uses", "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
+        var retention = RequireMapping(artifact, "with");
+        if (retention.Children.Count != 4) throw new InvalidOperationException("Evidence inputs must remain exact.");
+        RequireScalarValue(retention, "name", "catalog-validation-${{ github.sha }}");
+        RequireScalarValue(retention, "path", "runner-results");
+        RequireScalarValue(retention, "if-no-files-found", "warn");
+        RequireScalarValue(retention, "retention-days", "7");
     }
 
     private static IReadOnlyList<string> RequireExactReadOnlyPermissions(YamlMappingNode permissions, string scope)
