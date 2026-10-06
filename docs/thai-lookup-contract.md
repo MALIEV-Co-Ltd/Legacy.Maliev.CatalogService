@@ -84,8 +84,9 @@ Never log raw addresses or use resolver bodies as ordinary cache/log keys.
 GET `/api/v1/companies/search?q=...&queryType=name&language=th&limit=20`.
 Name query is 2..128 characters, language `th|en`, limit 1..50. Tax-ID queries require
 13 digits (Thai digits normalized to ASCII) and return only exact tax-ID matches from
-the same suggestion endpoint. Invalid requests return 400. Disabled/malformed/failed provider or rate
-budget exhaustion returns 503 `unavailable`; no-match is 200 with empty items.
+the same suggestion endpoint. Invalid requests return 400. Disabled/malformed/failed provider
+returns 503 `unavailable`; provider throttling or local rate-budget exhaustion returns
+429 `rate-limited` with a retry delay. No-match is 200 with empty items.
 
 Response `{outcome,provider:"creden",capability:"suggestion",items,hasMore}`. Items
 have `nameTh`, `nameEn`, `taxId`, `retrievedAt`, `status`, `companyType`, `objectives`,
