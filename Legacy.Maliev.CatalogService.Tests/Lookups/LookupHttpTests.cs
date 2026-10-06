@@ -24,6 +24,21 @@ namespace Legacy.Maliev.CatalogService.Tests.Lookups;
 [Collection("Read-only catalog process environment")]
 public sealed class LookupHttpTests
 {
+    [Fact]
+    public async Task Provider_throttling_survives_authenticated_http_with_retry_header()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var host = new LookupHost(company: new CompanyLookup("rate-limited", []) { RetryAfterSeconds = 30 });
+        using var client = host.Client("legacy-catalog.companies.read");
+        using var response = await client.GetAsync("/api/v1/companies/search?q=Test");
+        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
+        Assert.Equal(TimeSpan.FromSeconds(30), response.Headers.RetryAfter?.Delta);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("rate-limited", json.RootElement.GetProperty("outcome").GetString());
+        Assert.Equal(30, json.RootElement.GetProperty("retryAfterSeconds").GetInt32());
+        host.AssertNoDatabaseWork();
+    }
+
     [Theory]
     [InlineData("/api/v1/thai-addresses/provinces", "legacy-catalog.locations.read")]
     [InlineData("/api/v1/companies/search?q=Test", "legacy-catalog.companies.read")]
