@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Legacy.Maliev.CatalogService.Application.Lookups;
+
 /// <summary>An administrative entity with a stable code and bilingual names.</summary>
 /// <param name = "Code">Administrative code.</param>
 /// <param name = "NameTh">Thai name.</param>

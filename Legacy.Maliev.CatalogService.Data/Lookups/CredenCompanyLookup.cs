@@ -6,6 +6,7 @@ using Legacy.Maliev.CatalogService.Application.Lookups;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Legacy.Maliev.CatalogService.Data.Lookups;
+
 /// <summary>Live access remains disabled until a provider usage review is recorded.</summary>
 public sealed class CredenOptions
 {

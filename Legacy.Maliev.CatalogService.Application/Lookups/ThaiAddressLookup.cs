@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Legacy.Maliev.CatalogService.Application.Lookups;
+
 /// <summary>Immutable local hierarchy with deterministic AND filtering and conservative extraction.</summary>
 public sealed class ThaiAddressLookup
 {
@@ -57,7 +58,8 @@ public sealed class ThaiAddressLookup
             "provinces" => matches.Select(x => x.Province),
             "districts" => matches.Select(x => x.District),
             "subdistricts" => matches.Select(x => x.Subdistrict),
-            _ => throw new ArgumentException("Invalid administrative level.")};
+            _ => throw new ArgumentException("Invalid administrative level.")
+        };
         return Page(areas.DistinctBy(x => x.Code).OrderBy(x => x.Code, StringComparer.Ordinal), query, level);
     }
 

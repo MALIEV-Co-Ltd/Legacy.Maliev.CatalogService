@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Legacy.Maliev.CatalogService.Tests.Lookups;
+
 [Collection("Read-only catalog process environment")]
 public sealed class LookupHttpTests
 {
@@ -109,7 +110,7 @@ public sealed class LookupHttpTests
         using var conflictJson = JsonDocument.Parse(await conflict.Content.ReadAsStringAsync());
         Assert.Equal("conflict", conflictJson.RootElement.GetProperty("outcome").GetString());
         Assert.Equal(text, conflictJson.RootElement.GetProperty("detailText").GetString());
-        using var invalid = await client.PostAsJsonAsync("/api/v1/thai-addresses/resolve", new { text = new string ('x', 2049) });
+        using var invalid = await client.PostAsJsonAsync("/api/v1/thai-addresses/resolve", new { text = new string('x', 2049) });
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
         host.AssertNoDatabaseWork();
     }

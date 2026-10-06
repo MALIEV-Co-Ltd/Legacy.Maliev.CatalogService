@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Legacy.Maliev.CatalogService.Tests.Lookups;
+
 public sealed class CredenCompanyLookupTests
 {
     private const string Valid = "{\"success\":true,\"data\":{\"result\":[{\"id\":\"0105559999999\",\"company_name\":{\"th\":\"บริษัท ทดสอบ จำกัด\",\"en\":\"Test Limited\"}}]}}";
@@ -224,7 +225,7 @@ public sealed class CredenCompanyLookupTests
     public async Task Oversized_response_and_transport_error_are_not_empty_successes()
     {
         using var fixture = new Fixture(Enabled());
-        fixture.Handler.Response = (_, _) => Task.FromResult(Json(new string ('x', 65537)));
+        fixture.Handler.Response = (_, _) => Task.FromResult(Json(new string('x', 65537)));
         Assert.Equal("unavailable", (await fixture.Search()).Outcome);
         fixture.Handler.Response = (_, _) => throw new HttpRequestException("fixture transport failure");
         Assert.Equal("unavailable", (await fixture.Search()).Outcome);

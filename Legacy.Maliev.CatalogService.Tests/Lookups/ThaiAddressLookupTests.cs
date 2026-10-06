@@ -2,6 +2,7 @@ using Legacy.Maliev.CatalogService.Api.Lookups;
 using Legacy.Maliev.CatalogService.Application.Lookups;
 
 namespace Legacy.Maliev.CatalogService.Tests.Lookups;
+
 public sealed class ThaiAddressLookupTests
 {
     internal static string ApiRoot()
@@ -200,9 +201,9 @@ public sealed class ThaiAddressLookupTests
     {
         var lookup = Dataset();
         Assert.Throws<ArgumentException>(() => lookup.Resolve(new() { Text = " " }));
-        Assert.Throws<ArgumentException>(() => lookup.Resolve(new() { Text = new string ('x', 2049) }));
+        Assert.Throws<ArgumentException>(() => lookup.Resolve(new() { Text = new string('x', 2049) }));
         Assert.Throws<ArgumentException>(() => lookup.Resolve(new() { Text = "a\0b" }));
-        Assert.Throws<ArgumentException>(() => lookup.Search(new() { Q = new string ('x', 129) }));
+        Assert.Throws<ArgumentException>(() => lookup.Search(new() { Q = new string('x', 129) }));
         Assert.Throws<InvalidOperationException>(() => ThaiAddressDataset.Load(Path.Combine(ApiRoot(), "missing")).Search(new()));
     }
 }

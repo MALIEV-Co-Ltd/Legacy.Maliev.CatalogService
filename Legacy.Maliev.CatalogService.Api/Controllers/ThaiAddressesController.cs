@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Legacy.Maliev.CatalogService.Api.Controllers;
+
 /// <summary>Versioned local Thai administrative lookup; all access requires service/staff permission.</summary>
 [ApiController, Route("api/v1/thai-addresses"), Authorize, RequirePermission(CatalogPermissions.LocationsRead), EnableRateLimiting("catalog-lookups")]
 public sealed class ThaiAddressesController(ThaiAddressLookup lookup) : ControllerBase

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Legacy.Maliev.CatalogService.Application.Lookups;
 
 namespace Legacy.Maliev.CatalogService.Api.Lookups;
+
 /// <summary>Loads the pinned licensed snapshot; never seeds or modifies a database.</summary>
 public static class ThaiAddressDataset
 {

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Legacy.Maliev.CatalogService.Api.Controllers;
+
 /// <summary>Truthful bounded company suggestions; live provider access is disabled by default.</summary>
 [ApiController, Route("api/v1/companies"), Authorize, RequirePermission(CatalogPermissions.CompaniesRead), EnableRateLimiting("catalog-lookups")]
 public sealed class CompaniesController(ICompanyLookup lookup) : ControllerBase
