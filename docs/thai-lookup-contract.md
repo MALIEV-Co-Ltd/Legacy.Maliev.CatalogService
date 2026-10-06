@@ -1,6 +1,6 @@
 # Catalog lookup v1 implementation candidate
 
-These definitions describe authored code, not verified availability or release acceptance.
+These definitions describe the implementation candidate, not production availability.
 The original Catalog APIs, SQL Server source and cutover gates are preserved.
 No customer/supplier addresses are stored here and no database initialization is performed.
 
@@ -82,9 +82,9 @@ Never log raw addresses or use resolver bodies as ordinary cache/log keys.
 ## Company suggestions
 
 GET `/api/v1/companies/search?q=...&queryType=name&language=th&limit=20`.
-Name query is 2..128 characters, language `th|en`, limit 1..50. Valid 13-digit tax-ID
-query (Thai digits accepted) returns 422 `unsupported` until provider support is
-confirmed. Invalid requests return 400. Disabled/malformed/failed provider or rate
+Name query is 2..128 characters, language `th|en`, limit 1..50. Tax-ID queries require
+13 digits (Thai digits normalized to ASCII) and return only exact tax-ID matches from
+the same suggestion endpoint. Invalid requests return 400. Disabled/malformed/failed provider or rate
 budget exhaustion returns 503 `unavailable`; no-match is 200 with empty items.
 
 Response `{outcome,provider:"creden",capability:"suggestion",items,hasMore}`. Items
@@ -94,17 +94,24 @@ fields never imply registered address, active status, business objectives or typ
 Truncation sets hasMore but provider continuation is unsupported; narrow the query.
 CustomerService remains persistence owner; manual entry/correction must remain available.
 
+Live requests on 2026-10-06 confirmed Thai/English names and tax-ID search without
+credentials, including MALIEV tax ID 0125561001573. Successful no-match responses use
+`data.result: {}`; the adapter accepts an empty object or empty array as no-match.
+Nonempty objects, null and malformed results remain unavailable. These checks verify
+observed endpoint behavior and do not establish a provider availability guarantee.
+
 Configuration section `Creden`: `Enabled=false`, `AccessReviewReference=null`,
 `BaseUrl=https://data.creden.co/`, `TimeoutSeconds=3` (1..10), `CacheSeconds=300`
-(1..3600), `RequestsPerMinute=30` (1..60). Enabling requires a recorded provider
-contract/usage review and non-production smoke evidence. HTTPS origin is restricted,
+(1..3600), `RequestsPerMinute=30` (1..60). `AccessReviewReference` is optional review
+metadata; `Enabled=true` explicitly enables the owner-approved integration. HTTPS origin is restricted,
 redirects are disabled, response <=65536 bytes, one attempt, one in-flight request
 per instance, zero waiting queue. Rate caps are per instance; deployment must bound
 replica totals to agreed provider limits. Successful/no-match cache keys use
-`legacy:catalog:creden:v1:` plus a hash; failures are not cached. Caller cancellation
+`legacy:catalog:creden:v2:` plus a hash binding query type, language, limit and query;
+name and tax-ID cache entries are separate. Failures are not cached. Caller cancellation
 propagates; own timeout is unavailable. No provider credentials or raw queries are
-logged by this adapter. Production access rights, supported limits and live responses
-are still unconfirmed; fixture tests are not provider permission evidence.
+logged by this adapter. Live behavior is confirmed above; a published service contract
+and provider rate-limit guarantee have not been established.
 
 ## Dataset provenance and controlled updates
 
@@ -126,5 +133,5 @@ to production or updates a database. Initialization is packaged local data, no `
 Rollback restores the previous reviewed artifact/constants as a coherent release.
 
 Release is still held for retained LocationData reconciliation, reviewed additional
-postcode coverage, live-provider terms/smoke, consumer persisted-address/company flows,
+postcode coverage, consumer persisted-address/company flows,
 and AppHost/IAM evidence. Hosted tests prove only their named service/HTTP boundaries.

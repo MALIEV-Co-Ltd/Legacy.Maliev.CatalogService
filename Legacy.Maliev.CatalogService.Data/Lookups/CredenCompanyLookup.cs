@@ -7,12 +7,12 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace Legacy.Maliev.CatalogService.Data.Lookups;
 
-/// <summary>Live access remains disabled until a provider usage review is recorded.</summary>
+/// <summary>Live access is controlled by an explicit configuration switch.</summary>
 public sealed class CredenOptions
 {
     /// <summary>Explicit opt-in; false by default.</summary>
     public bool Enabled { get; set; }
-    /// <summary>Reference to reviewed access terms, contract and production limits.</summary>
+    /// <summary>Optional reference documenting the integration review.</summary>
     public string? AccessReviewReference { get; set; }
     /// <summary>Provider origin, restricted to Creden HTTPS.</summary>
     public string BaseUrl { get; set; } = "https://data.creden.co/";
@@ -37,15 +37,12 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
         query = ThaiAddressLookup.NormalizeDigits(query.Trim());
         if (query.Length is < 2 or > 128 || query.Any(char.IsControl) || limit is < 1 or > 50 || language is not ("th" or "en") || queryType is not ("name" or "tax-id") || queryType == "tax-id" && (query.Length != 13 || query.Any(c => c is < '0' or > '9')))
             throw new ArgumentException("Invalid company lookup input.");
-        // Tax-ID support has not been confirmed for the suggestion contract.
-        if (queryType == "tax-id")
-            return new("unsupported", []);
-        if (!options.Enabled || string.IsNullOrWhiteSpace(options.AccessReviewReference) || !Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var origin) || origin.Scheme != "https" || origin.Host != "data.creden.co" || origin.Port != 443 || origin.UserInfo.Length != 0 || origin.AbsolutePath != "/" || origin.Query.Length != 0 || origin.Fragment.Length != 0 || options.TimeoutSeconds is < 1 or > 10 || options.CacheSeconds is < 1 or > 3600 || options.RequestsPerMinute is < 1 or > 60)
+        if (!options.Enabled || !Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var origin) || origin.Scheme != "https" || origin.Host != "data.creden.co" || origin.Port != 443 || origin.UserInfo.Length != 0 || origin.AbsolutePath != "/" || origin.Query.Length != 0 || origin.Fragment.Length != 0 || options.TimeoutSeconds is < 1 or > 10 || options.CacheSeconds is < 1 or > 3600 || options.RequestsPerMinute is < 1 or > 60)
             return new("unavailable", []);
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         budget.CancelAfter(TimeSpan.FromSeconds(options.TimeoutSeconds));
         var token = budget.Token;
-        var key = "legacy:catalog:creden:v1:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{origin}|{options.AccessReviewReference}|{language}|{limit}|{query}")));
+        var key = "legacy:catalog:creden:v2:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{origin}|{queryType}|{language}|{limit}|{query}")));
         var acquired = false;
         try
         {
@@ -59,7 +56,8 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
                         && (value.Outcome == "no-match" && value.Items.Count == 0 || value.Outcome == "matches" && value.Items.Count > 0)
                         && value.Items.All(item => item is not null && (!string.IsNullOrWhiteSpace(item.NameTh) || !string.IsNullOrWhiteSpace(item.NameEn))
                             && item.NameTh?.Length is not > 512 && item.NameEn?.Length is not > 512
-                            && (item.TaxId is null || item.TaxId.Length == 13 && item.TaxId.All(c => c is >= '0' and <= '9'))))
+                            && (item.TaxId is null || item.TaxId.Length == 13 && item.TaxId.All(c => c is >= '0' and <= '9'))
+                            && (queryType != "tax-id" || item.TaxId == query)))
                         return value;
                 }
                 catch (JsonException)
@@ -100,10 +98,11 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
 
             using var document = JsonDocument.Parse(bytes.ToArray());
             var root = document.RootElement;
-            if (!root.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True || !root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object || !data.TryGetProperty("result", out var results) || results.ValueKind != JsonValueKind.Array)
+            if (!root.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True || !root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object || !data.TryGetProperty("result", out var results)
+                || results.ValueKind != JsonValueKind.Array && (results.ValueKind != JsonValueKind.Object || results.EnumerateObject().Any()))
                 return new("unavailable", []);
             var items = new List<CompanySuggestion>();
-            foreach (var result in results.EnumerateArray())
+            foreach (var result in results.ValueKind == JsonValueKind.Array ? results.EnumerateArray().ToArray() : [])
             {
                 if (result.ValueKind != JsonValueKind.Object || !result.TryGetProperty("company_name", out var names) || names.ValueKind != JsonValueKind.Object)
                     return new("unavailable", []);
@@ -115,7 +114,8 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
                 var id = result.TryGetProperty("id", out var identifier) && identifier.ValueKind == JsonValueKind.String ? identifier.GetString() : null;
                 if (id is not null && (id.Length != 13 || id.Any(c => c is < '0' or > '9')))
                     return new("unavailable", []);
-                items.Add(new(th, en, id, now));
+                if (queryType != "tax-id" || id == query)
+                    items.Add(new(th, en, id, now));
             }
 
             var lookup = new CompanyLookup(items.Count == 0 ? "no-match" : "matches", items.Take(limit).ToArray())

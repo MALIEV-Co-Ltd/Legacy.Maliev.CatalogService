@@ -17,14 +17,14 @@ public sealed class CredenCompanyLookupTests
         AccessReviewReference = "fixture-contract-only"
     };
     [Fact]
-    public async Task Disabled_or_unreviewed_configuration_never_calls_provider()
+    public async Task Disabled_configuration_never_calls_provider_but_review_reference_is_optional()
     {
         using var fixture = new Fixture(new());
         Assert.Equal("unavailable", (await fixture.Search()).Outcome);
         Assert.Equal(0, fixture.Handler.Calls);
         fixture.Options.Enabled = true;
-        Assert.Equal("unavailable", (await fixture.Search()).Outcome);
-        Assert.Equal(0, fixture.Handler.Calls);
+        Assert.Equal("matches", (await fixture.Search()).Outcome);
+        Assert.Equal(1, fixture.Handler.Calls);
     }
 
     [Theory]
@@ -71,13 +71,36 @@ public sealed class CredenCompanyLookupTests
         Assert.Equal(fixture.Clock.GetUtcNow(), item.RetrievedAt);
     }
 
-    [Fact]
-    public async Task Validated_tax_id_is_explicitly_unsupported_not_fake_no_match()
+    [Theory]
+    [InlineData("0105559999999")]
+    [InlineData("๐๑๐๕๕๕๙๙๙๙๙๙๙")]
+    public async Task Tax_id_is_normalized_sent_to_provider_and_returns_only_exact_matches(string query)
     {
         using var fixture = new Fixture(Enabled());
-        Assert.Equal("unsupported", (await fixture.Lookup.SearchAsync("๐๑๐๕๕๕๙๙๙๙๙๙๙", "tax-id", "th", 20, default)).Outcome);
-        Assert.Equal(0, fixture.Handler.Calls);
+        fixture.Handler.Response = async (request, token) =>
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+            Assert.Equal("0105559999999", body.RootElement.GetProperty("text").GetString());
+            return Json(Valid);
+        };
+        var result = await fixture.Lookup.SearchAsync(query, "tax-id", "th", 20, default);
+        Assert.Equal("matches", result.Outcome);
+        Assert.Equal("0105559999999", Assert.Single(result.Items).TaxId);
+        Assert.Equal(1, fixture.Handler.Calls);
         await Assert.ThrowsAsync<ArgumentException>(() => fixture.Lookup.SearchAsync("123", "tax-id", "th", 20, default));
+    }
+
+    [Fact]
+    public async Task Name_cache_and_tax_id_cache_are_isolated_and_different_ids_are_not_selected()
+    {
+        using var fixture = new Fixture(Enabled());
+        Assert.Equal("matches", (await fixture.Lookup.SearchAsync("0125561001573", "name", "th", 20, default)).Outcome);
+        var tax = await fixture.Lookup.SearchAsync("0125561001573", "tax-id", "th", 20, default);
+        Assert.Equal("no-match", tax.Outcome);
+        Assert.Empty(tax.Items);
+        Assert.Equal(2, fixture.Handler.Calls);
+        Assert.Equal("no-match", (await fixture.Lookup.SearchAsync("0125561001573", "tax-id", "th", 20, default)).Outcome);
+        Assert.Equal(2, fixture.Handler.Calls);
     }
 
     [Theory]
@@ -99,6 +122,8 @@ public sealed class CredenCompanyLookupTests
     [InlineData("{broken")]
     [InlineData("{}")]
     [InlineData("{\"success\":false}")]
+    [InlineData("{\"success\":true,\"data\":{\"result\":{\"unexpected\":[]}}}")]
+    [InlineData("{\"success\":true,\"data\":{\"result\":null}}")]
     [InlineData("{\"success\":true,\"data\":{\"result\":[{}]}}")]
     [InlineData("{\"success\":true,\"data\":{\"result\":[{\"company_name\":{}}]}}")]
     [InlineData("{\"success\":true,\"data\":{\"result\":[{\"id\":\"x\",\"company_name\":{\"en\":\"Test\"}}]}}")]
@@ -133,18 +158,20 @@ public sealed class CredenCompanyLookupTests
         Assert.Equal("matches", (await fixture.Search()).Outcome);
         Assert.Equal(1, fixture.Handler.Calls);
         var key = Assert.Single(fixture.Cache.Values).Key;
-        Assert.StartsWith("legacy:catalog:creden:v1:", key);
+        Assert.StartsWith("legacy:catalog:creden:v2:", key);
         Assert.DoesNotContain("Test", key);
         fixture.Clock.Advance(TimeSpan.FromSeconds(301));
         Assert.Equal("matches", (await fixture.Search()).Outcome);
         Assert.Equal(2, fixture.Handler.Calls);
     }
 
-    [Fact]
-    public async Task Empty_array_is_no_match_and_cached_but_null_details_stay_null()
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("{}")]
+    public async Task Empty_array_or_live_empty_object_is_no_match_and_cached(string result)
     {
         using var fixture = new Fixture(Enabled());
-        fixture.Handler.Response = (_, _) => Task.FromResult(Json("{\"success\":true,\"data\":{\"result\":[]}}"));
+        fixture.Handler.Response = (_, _) => Task.FromResult(Json("{\"success\":true,\"data\":{\"result\":" + result + "}}"));
         Assert.Equal("no-match", (await fixture.Search()).Outcome);
         Assert.Equal("no-match", (await fixture.Search()).Outcome);
         Assert.Equal(1, fixture.Handler.Calls);

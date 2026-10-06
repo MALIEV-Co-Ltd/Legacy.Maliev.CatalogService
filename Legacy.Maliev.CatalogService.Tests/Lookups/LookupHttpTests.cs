@@ -9,10 +9,12 @@ using System.Text.Json;
 using Legacy.Maliev.CatalogService.Api.Lookups;
 using Legacy.Maliev.CatalogService.Application.Lookups;
 using Legacy.Maliev.CatalogService.Data;
+using Legacy.Maliev.CatalogService.Data.Lookups;
 using Legacy.Maliev.CatalogService.Tests.Integration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
@@ -116,7 +118,7 @@ public sealed class LookupHttpTests
     }
 
     [Fact]
-    public async Task Missing_dataset_is_503_and_tax_id_is_422_rather_than_empty_success()
+    public async Task Missing_dataset_and_disabled_company_provider_are_503()
     {
         using var environment = new CatalogEnvironmentScope(null);
         using var host = new LookupHost(unavailable: true);
@@ -124,9 +126,33 @@ public sealed class LookupHttpTests
         using var missing = await client.GetAsync("/api/v1/thai-addresses/provinces");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, missing.StatusCode);
         using var tax = await client.GetAsync("/api/v1/companies/search?q=0105559999999&queryType=tax-id");
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, tax.StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, tax.StatusCode);
         using var json = JsonDocument.Parse(await tax.Content.ReadAsStringAsync());
-        Assert.Equal("unsupported", json.RootElement.GetProperty("outcome").GetString());
+        Assert.Equal("unavailable", json.RootElement.GetProperty("outcome").GetString());
+        host.AssertNoDatabaseWork();
+    }
+
+    [Theory]
+    [InlineData("{}", "no-match")]
+    [InlineData("[{\"id\":\"0125561001573\",\"company_name\":{\"en\":\"MALIEV COMPANY LIMITED\",\"th\":\"มาลีฟ จำกัด\"}}]", "matches")]
+    public async Task Live_tax_id_and_empty_object_shapes_survive_provider_to_authenticated_http(string result, string outcome)
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var host = new LookupHost(providerResult: result);
+        using var client = host.Client("legacy-catalog.companies.read");
+        using var response = await client.GetAsync("/api/v1/companies/search?q=0125561001573&queryType=tax-id");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(outcome, json.RootElement.GetProperty("outcome").GetString());
+        var items = json.RootElement.GetProperty("items").EnumerateArray().ToArray();
+        if (outcome == "matches")
+        {
+            var item = Assert.Single(items);
+            Assert.Equal("0125561001573", item.GetProperty("taxId").GetString());
+            Assert.Equal(JsonValueKind.Null, item.GetProperty("status").ValueKind);
+        }
+        else
+            Assert.Empty(items);
         host.AssertNoDatabaseWork();
     }
 
@@ -167,7 +193,7 @@ public sealed class LookupHttpTests
         private readonly RSA rsa = RSA.Create(2048);
         private readonly CatalogReadOnlyProbe probe = new();
         private readonly WebApplicationFactory<Program> factory;
-        public LookupHost(bool unavailable = false, CompanyLookup? company = null)
+        public LookupHost(bool unavailable = false, CompanyLookup? company = null, string? providerResult = null)
         {
             factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             {
@@ -198,6 +224,8 @@ public sealed class LookupHttpTests
                         services.Replace(ServiceDescriptor.Singleton(new ThaiAddressLookup("", [])));
                     if (company is not null)
                         services.Replace(ServiceDescriptor.Singleton<ICompanyLookup>(new CompanyStub(company)));
+                    if (providerResult is not null)
+                        services.Replace(ServiceDescriptor.Singleton<ICompanyLookup>(provider => new CredenCompanyLookup(new HttpClient(new ProviderHandler(providerResult)), provider.GetRequiredService<IDistributedCache>(), new CredenOptions { Enabled = true }, TimeProvider.System)));
                 });
             });
         }
@@ -229,5 +257,18 @@ public sealed class LookupHttpTests
     private sealed class CompanyStub(CompanyLookup value) : ICompanyLookup
     {
         public Task<CompanyLookup> SearchAsync(string query, string queryType, string language, int limit, CancellationToken cancellationToken) => Task.FromResult(value);
+    }
+
+    private sealed class ProviderHandler(string result) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+            Assert.Equal("0125561001573", body.RootElement.GetProperty("text").GetString());
+            return new(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"success\":true,\"data\":{\"result\":" + result + "}}", Encoding.UTF8, "application/json")
+            };
+        }
     }
 }
