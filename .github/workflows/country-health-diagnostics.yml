@@ -20,7 +20,7 @@ jobs:
       VSTestLogger: trx
       VSTestResultsDirectory: ${{ github.workspace }}/country-health-diagnostic-results
       CATALOG_SOURCE_DIAGNOSTIC_OUTPUT_DIRECTORY: ${{ github.workspace }}/country-health-diagnostic-results/country-health-diagnostics
-      VSTestTestCaseFilter: FullyQualifiedName~CountryIsoAndHealthSourceDiagnosticsTests
+      VSTestTestCaseFilter: FullyQualifiedName~CountryIsoAndHealthSourceDiagnosticsTests|FullyQualifiedName~CountryIsoSchemaUpdaterTests
     steps:
       - name: Check out CatalogService
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -45,7 +45,7 @@ jobs:
         with:
           solution: Legacy.Maliev.CatalogService.Tests/Legacy.Maliev.CatalogService.Tests.csproj
           use-local-maliev-dependencies: 'true'
-      - name: Verify all 10 actual diagnostic cases, original exports and provenance
+      - name: Verify all 20 actual diagnostic cases, original exports and provenance
         run: python3 -B scripts/verify-country-health-diagnostics.py country-health-diagnostic-results --exports
       - name: Preserve original source diagnostic evidence
         if: always()

@@ -16,6 +16,11 @@ SOURCES = [
     'Legacy.Maliev.CatalogService.Application/Services/CatalogApplicationService.cs',
     'Legacy.Maliev.CatalogService.Data/CatalogDbContext.cs',
     'Legacy.Maliev.CatalogService.Data/LookupDbContexts.cs',
+    'Legacy.Maliev.CatalogService.Data/CountryIsoSchemaUpdater.cs',
+    'Legacy.Maliev.CatalogService.Data/Migrations/20261006202000_PreserveLiteralCountryIsoCodes.cs',
+    'Legacy.Maliev.CatalogService.Data/Migrations/20261006202000_PreserveLiteralCountryIsoCodes.Designer.cs',
+    'Legacy.Maliev.CatalogService.Data/Migrations/CatalogDbContextModelSnapshot.cs',
+    'Legacy.Maliev.CatalogService.Tests/Integration/CountryIsoSchemaUpdaterTests.cs',
     'Legacy.Maliev.CatalogService.Tests/Integration/CatalogHttpLifecycleTests.cs',
     'Legacy.Maliev.CatalogService.Tests/Integration/CountryIsoAndHealthSourceDiagnosticsTests.cs',
     'tools/CountryIsoAndHealthSourceDiagnostics/README.md',
@@ -104,7 +109,7 @@ def evidence(root, head):
         and folder.resolve().parent == root.resolve())
     manifest = load(git('show', head + ':scripts/country-health-diagnostic-expected.json'))
     require('Diagnostic scope must remain explicit', manifest['diagnosticAcceptanceIsNotSourceParityAcceptance'] is True
-        and manifest['actualAuthOrDeploymentProven'] is False and manifest['forecast'] == 10)
+        and manifest['actualAuthOrDeploymentProven'] is False and manifest['forecast'] == 20)
     names = {case + '-' + suffix for case in manifest['cases'] for suffix in
         ('created.json', 'fresh.json', 'repeated.json', 'after-put.json', 'after-db.json', 'observation.json')}
     names.update('health-' + case + '-' + suffix for case in manifest['health'] for suffix in
@@ -116,7 +121,7 @@ def evidence(root, head):
     gate = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gate)
     require('Recheck original native evidence rather than trusting proof claims', gate.verify_native(
-        root, proof['actualPassed'] != 10, manifest) == proof)
+        root, proof['actualPassed'] != manifest['forecast'], manifest) == proof)
     wires, gaps = [], []
     for name in sorted(names):
         data = bounded(folder / name, 16 * 1024)
@@ -143,7 +148,7 @@ def evidence(root, head):
             == [fresh.get('Iso2'), fresh.get('Iso3')])
         parity = requested == [fresh.get('Iso2'), fresh.get('Iso3')]
         require('Cannot relabel a literal gap as accepted parity', observation['SourceLiteralParityObserved'] is parity)
-        require('Preserve observed target fixed-width model', observation['Iso2ColumnType'] == manifest['observedTargetColumnTypes']['Iso2']
+        require('Preserve exact observed target model', observation['Iso2ColumnType'] == manifest['observedTargetColumnTypes']['Iso2']
             and observation['Iso3ColumnType'] == manifest['observedTargetColumnTypes']['Iso3'])
         for key, count in (('CountryRows', 2), ('CatalogCountryRows', 0), ('CurrencyRows', 0)):
             require('Exact independent role counts required', type(observation[key]) is int and observation[key] == count)

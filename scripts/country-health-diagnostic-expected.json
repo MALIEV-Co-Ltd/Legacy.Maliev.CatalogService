@@ -1,10 +1,13 @@
 {
-  "forecast": 10,
-  "fullForecast": 345,
+  "forecast": 20,
+  "fullForecast": 355,
   "acceptedBaseFullPassed": 335,
   "methods": {
     "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoAndHealthSourceDiagnosticsTests.NormalCountryHttpAndOwnDatabaseCaptureAndAssertExactSourceLiteralParity": 7,
-    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoAndHealthSourceDiagnosticsTests.NormalAnonymousHealthUsesCatalogPrefixWithoutAddingLegacyAliases": 3
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoAndHealthSourceDiagnosticsTests.NormalAnonymousHealthUsesCatalogPrefixWithoutAddingLegacyAliases": 3,
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoSchemaUpdaterTests.CompleteAuthoritativePreimagesPreserveRowsAndMakeRepeatedUpdateIdempotent": 4,
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoSchemaUpdaterTests.UnprovablePreimagesFailClosedWithoutChangingSchemaOrStoredRows": 4,
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoSchemaUpdaterTests.ConsolidatedMigrationAndRollbackRejectRetainedRowsWithoutChangingSchema": 2
   },
   "cases": {
     "empty": [
@@ -60,7 +63,7 @@
   "diagnosticAcceptanceIsNotSourceParityAcceptance": true,
   "actualAuthOrDeploymentProven": false,
   "observedTargetColumnTypes": {
-    "Iso2": "character(2)",
-    "Iso3": "character(3)"
+    "Iso2": "character varying(2)",
+    "Iso3": "character varying(3)"
   }
 }

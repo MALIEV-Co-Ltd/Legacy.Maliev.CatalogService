@@ -79,7 +79,8 @@ def main():
                 (exports / (case + '-' + kind + '.json')).write_bytes(encode(value))
             observation = {'SyntheticOnly': True, 'DiagnosticOnly': True, 'SourceLiteralParityObserved': requested == stored,
                 'RequestedIso2': requested[0], 'RequestedIso3': requested[1], 'StoredIso2': stored[0], 'StoredIso3': stored[1],
-                'Iso2ColumnType': 'character(2)', 'Iso3ColumnType': 'character(3)', 'CountryRows': 2,
+                'Iso2ColumnType': manifest['observedTargetColumnTypes']['Iso2'],
+                'Iso3ColumnType': manifest['observedTargetColumnTypes']['Iso3'], 'CountryRows': 2,
                 'CatalogCountryRows': 0, 'CurrencyRows': 0, 'ActualAuthProducerJoinProven': False}
             (exports / (case + '-observation.json')).write_bytes(encode(observation))
         for case, (path, healthy) in manifest['health'].items():
@@ -108,7 +109,7 @@ def main():
                 ET.SubElement(outcomes, tag('UnitTestResult'), testId=test_id, executionId=execution_id,
                     testName=display, outcome='Passed')
         summary = ET.SubElement(document, tag('ResultSummary'), outcome='Completed')
-        counters = {name: '10' for name in ('total', 'executed', 'passed')}
+        counters = {name: str(manifest['forecast']) for name in ('total', 'executed', 'passed')}
         counters.update({name: '0' for name in ('failed', 'error', 'timeout', 'aborted', 'inconclusive',
             'passedButRunAborted', 'notRunnable', 'notExecuted', 'disconnected', 'warning', 'completed', 'inProgress', 'pending')})
         ET.SubElement(summary, tag('Counters'), **counters)

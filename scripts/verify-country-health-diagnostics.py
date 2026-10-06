@@ -15,7 +15,7 @@ def verify_native(root, full=False, manifest_override=None):
     manifest = manifest_override if manifest_override is not None else json.loads((Path(__file__).parent / 'country-health-diagnostic-expected.json').read_text())
     expected = manifest['methods']
     total = manifest['fullForecast'] if full else manifest['forecast']
-    assert sum(expected.values()) == manifest['forecast'] == 10
+    assert sum(expected.values()) == manifest['forecast'] == 20
     reports = list(root.rglob('*.trx'))
     if len(reports) != 1:
         raise SystemExit('Require one actual TRX')
