@@ -21,6 +21,7 @@ SOURCES = [
     'Legacy.Maliev.CatalogService.Data/Migrations/20261006202000_PreserveLiteralCountryIsoCodes.Designer.cs',
     'Legacy.Maliev.CatalogService.Data/Migrations/CatalogDbContextModelSnapshot.cs',
     'Legacy.Maliev.CatalogService.Tests/Integration/CountryIsoSchemaUpdaterTests.cs',
+    'Legacy.Maliev.CatalogService.Tests/Integration/PostgreSqlMigrationTests.cs',
     'Legacy.Maliev.CatalogService.Tests/Integration/CatalogHttpLifecycleTests.cs',
     'Legacy.Maliev.CatalogService.Tests/Integration/CountryIsoAndHealthSourceDiagnosticsTests.cs',
     'tools/CountryIsoAndHealthSourceDiagnostics/README.md',
