@@ -3,6 +3,10 @@ namespace Legacy.Maliev.CatalogService.Api.Authorization;
 /// <summary>Granular permissions for protected legacy catalog endpoints.</summary>
 public static class CatalogPermissions
 {
+    /// <summary>Thai administrative lookup and extraction permission.</summary>
+    public const string LocationsRead = "legacy-catalog.locations.read";
+    /// <summary>Company provider lookup permission.</summary>
+    public const string CompaniesRead = "legacy-catalog.companies.read";
     /// <summary>Country read permission.</summary>
     public const string CountriesRead = "legacy-catalog.countries.read";
     /// <summary>Country create permission.</summary>

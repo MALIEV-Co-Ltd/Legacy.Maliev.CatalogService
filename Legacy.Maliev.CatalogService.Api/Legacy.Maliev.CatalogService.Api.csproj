@@ -18,6 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Update="Data\ThaiAddresses\geography.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="Data\ThaiAddresses\provenance.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Data\ThaiAddresses\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <ProjectReference Include="..\Legacy.Maliev.CatalogService.Application\Legacy.Maliev.CatalogService.Application.csproj" />
     <ProjectReference Include="..\Legacy.Maliev.CatalogService.Data\Legacy.Maliev.CatalogService.Data.csproj" />
