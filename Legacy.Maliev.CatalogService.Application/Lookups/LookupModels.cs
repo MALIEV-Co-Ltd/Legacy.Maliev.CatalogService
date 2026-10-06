@@ -124,10 +124,14 @@ public sealed record CompanySuggestion([property: JsonPropertyName("nameTh"), Js
 }
 
 /// <summary>Company capability and availability are explicit.</summary>
-/// <param name = "Outcome">matches, no-match, unavailable or unsupported.</param>
+/// <param name = "Outcome">matches, no-match, rate-limited, unavailable or unsupported.</param>
 /// <param name = "Items">Verified available suggestion fields.</param>
 public sealed record CompanyLookup([property: JsonPropertyName("outcome")] string Outcome, [property: JsonPropertyName("items")] IReadOnlyList<CompanySuggestion> Items)
 {
+    /// <summary>Minimum client retry delay for an explicit throttled result.</summary>
+    [JsonPropertyName("retryAfterSeconds"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? RetryAfterSeconds { get; init; }
+
     /// <summary>Provider provenance.</summary>
     [JsonPropertyName("provider")]
     public string Provider => "creden";

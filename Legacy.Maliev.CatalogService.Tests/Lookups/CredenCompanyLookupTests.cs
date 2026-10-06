@@ -138,7 +138,6 @@ public sealed class CredenCompanyLookupTests
     }
 
     [Theory]
-    [InlineData(429)]
     [InlineData(500)]
     [InlineData(302)]
     public async Task Provider_failure_is_explicit_without_retry(int status)
@@ -225,10 +224,60 @@ public sealed class CredenCompanyLookupTests
         using var fixture = new Fixture(Enabled());
         fixture.Options.RequestsPerMinute = 1;
         Assert.Equal("matches", (await fixture.Search()).Outcome);
-        Assert.Equal("unavailable", (await fixture.Lookup.SearchAsync("other", "name", "th", 20, default)).Outcome);
+        var limited = await fixture.Lookup.SearchAsync("other", "name", "th", 20, default);
+        Assert.Equal("rate-limited", limited.Outcome);
+        Assert.Equal(60, limited.RetryAfterSeconds);
         Assert.Equal(1, fixture.Handler.Calls);
         fixture.Clock.Advance(TimeSpan.FromMinutes(1));
         Assert.Equal("matches", (await fixture.Lookup.SearchAsync("other", "name", "th", 20, default)).Outcome);
+        Assert.Equal(2, fixture.Handler.Calls);
+    }
+
+    [Theory]
+    [InlineData("30", 30)]
+    [InlineData(null, 60)]
+    [InlineData("invalid", 60)]
+    [InlineData("0", 60)]
+    public async Task Provider_throttle_has_explicit_delay_and_suppresses_distinct_queries_until_cooldown(string? header, int seconds)
+    {
+        using var fixture = new Fixture(Enabled());
+        fixture.Handler.Response = (_, _) =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+            if (header is not null)
+                response.Headers.TryAddWithoutValidation("Retry-After", header);
+            return Task.FromResult(response);
+        };
+        var result = await fixture.Search();
+        Assert.Equal("rate-limited", result.Outcome);
+        Assert.Equal(seconds, result.RetryAfterSeconds);
+        Assert.Empty(result.Items);
+        Assert.Empty(fixture.Cache.Values);
+        fixture.Clock.Advance(TimeSpan.FromSeconds(1));
+        result = await fixture.Lookup.SearchAsync("other", "name", "th", 20, default);
+        Assert.Equal(seconds - 1, result.RetryAfterSeconds);
+        Assert.Equal(1, fixture.Handler.Calls);
+        fixture.Clock.Advance(TimeSpan.FromSeconds(seconds));
+        fixture.Handler.Response = (_, _) => Task.FromResult(Json(Valid));
+        Assert.Equal("matches", (await fixture.Search()).Outcome);
+        Assert.Equal(2, fixture.Handler.Calls);
+    }
+
+    [Fact]
+    public async Task Provider_http_date_is_honored_and_cached_success_remains_usable_during_cooldown()
+    {
+        using var fixture = new Fixture(Enabled());
+        Assert.Equal("matches", (await fixture.Search()).Outcome);
+        fixture.Handler.Response = (_, _) =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+            response.Headers.RetryAfter = new(fixture.Clock.GetUtcNow().AddSeconds(90));
+            return Task.FromResult(response);
+        };
+        var result = await fixture.Lookup.SearchAsync("other", "name", "th", 20, default);
+        Assert.Equal("rate-limited", result.Outcome);
+        Assert.Equal(90, result.RetryAfterSeconds);
+        Assert.Equal("matches", (await fixture.Search()).Outcome);
         Assert.Equal(2, fixture.Handler.Calls);
     }
 

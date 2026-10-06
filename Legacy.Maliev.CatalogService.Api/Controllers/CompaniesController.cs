@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Legacy.Maliev.CatalogService.Api.Controllers;
 
-/// <summary>Truthful bounded company suggestions; live provider access is disabled by default.</summary>
+/// <summary>Truthful bounded company suggestions with an operator-controlled provider switch.</summary>
 [ApiController, Route("api/v1/companies"), Authorize, RequirePermission(CatalogPermissions.CompaniesRead), EnableRateLimiting("catalog-lookups")]
 public sealed class CompaniesController(ICompanyLookup lookup) : ControllerBase
 {
@@ -18,8 +18,11 @@ public sealed class CompaniesController(ICompanyLookup lookup) : ControllerBase
         try
         {
             var result = await lookup.SearchAsync(q, queryType, language, limit, cancellationToken);
+            if (result.Outcome == "rate-limited" && result.RetryAfterSeconds is { } retry)
+                Response.Headers.RetryAfter = retry.ToString(System.Globalization.CultureInfo.InvariantCulture);
             return StatusCode(result.Outcome switch
             {
+                "rate-limited" => 429,
                 "unavailable" => 503,
                 "unsupported" => 422,
                 _ => 200

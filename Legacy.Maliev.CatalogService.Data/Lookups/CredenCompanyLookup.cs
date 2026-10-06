@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
@@ -30,6 +32,7 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
     private readonly SemaphoreSlim gate = new(1, 1);
     private DateTimeOffset windowStart;
     private int calls;
+    private DateTimeOffset retryAt;
     /// <inheritdoc/>
     public async Task<CompanyLookup> SearchAsync(string query, string queryType, string language, int limit, CancellationToken cancellationToken)
     {
@@ -69,6 +72,8 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
             if (!acquired)
                 return new("unavailable", []);
             var now = clock.GetUtcNow();
+            if (now < retryAt)
+                return RateLimited(now, retryAt);
             if (now - windowStart >= TimeSpan.FromMinutes(1))
             {
                 windowStart = now;
@@ -76,13 +81,29 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
             }
 
             if (calls >= options.RequestsPerMinute)
-                return new("unavailable", []);
+                return RateLimited(now, windowStart.AddMinutes(1));
             calls++;
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(origin, "sapi/search/get_suggestion"))
             {
                 Content = JsonContent.Create(new { type_search = "prefix", text = query, lang = language })
             };
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                now = clock.GetUtcNow();
+                var delay = TimeSpan.FromSeconds(60);
+                if (response.Headers.TryGetValues("Retry-After", out var values)
+                    && RetryConditionHeaderValue.TryParse(values.FirstOrDefault(), out var retry))
+                {
+                    var supplied = retry.Delta ?? (retry.Date - now);
+                    if (supplied is { } positive && positive > TimeSpan.Zero)
+                        delay = positive;
+                }
+
+                // Keep the upstream cooldown bounded to a day; do not retry this request.
+                retryAt = now.AddSeconds(Math.Clamp(delay.TotalSeconds, 1, 86400));
+                return RateLimited(now, retryAt);
+            }
             if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > 65536)
                 return new("unavailable", []);
             await using var stream = await response.Content.ReadAsStreamAsync(token);
@@ -155,6 +176,11 @@ public sealed class CredenCompanyLookup(HttpClient http, IDistributedCache cache
                 gate.Release();
         }
     }
+
+    private static CompanyLookup RateLimited(DateTimeOffset now, DateTimeOffset until) => new("rate-limited", [])
+    {
+        RetryAfterSeconds = Math.Max(1, (int)Math.Ceiling((until - now).TotalSeconds))
+    };
 
     /// <summary>Releases instance-owned resources.</summary>
     public void Dispose()
