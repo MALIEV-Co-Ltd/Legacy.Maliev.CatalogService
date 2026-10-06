@@ -1,4 +1,10 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Legacy.Maliev.CatalogService.Application.Lookups;
+using Legacy.Maliev.CatalogService.Api.Lookups;
+using Legacy.Maliev.CatalogService.Data.Lookups;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Caching.Distributed;
 using Legacy.Maliev.CatalogService.Application.Interfaces;
 using Legacy.Maliev.CatalogService.Application.Services;
 using Legacy.Maliev.CatalogService.Data;
@@ -35,6 +41,21 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DictionaryKeyPolicy = null;
 });
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(_ => ThaiAddressDataset.Load(builder.Environment.ContentRootPath));
+var credenOptions = builder.Configuration.GetSection("Creden").Get<CredenOptions>() ?? new CredenOptions();
+builder.Services.AddHttpClient("catalog-creden", client => client.Timeout = Timeout.InfiniteTimeSpan)
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddSingleton<ICompanyLookup>(services => new CredenCompanyLookup(
+    services.GetRequiredService<IHttpClientFactory>().CreateClient("catalog-creden"),
+    services.GetRequiredService<IDistributedCache>(), credenOptions, services.GetRequiredService<TimeProvider>()));
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("catalog-lookups", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst("user_id")?.Value ?? context.User.FindFirst("sub")?.Value
+            ?? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.User.Identity?.Name ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
 builder.Services.AddHttpClient<IExchangeRateClient, FrankfurterExchangeRateClient>(client =>
 {
     client.BaseAddress = new Uri("https://api.frankfurter.app/");
@@ -52,6 +73,7 @@ app.UseStandardMiddleware();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapDefaultEndpoints("catalog");
 app.MapControllers();
 app.MapApiDocumentation(servicePrefix: "catalog");

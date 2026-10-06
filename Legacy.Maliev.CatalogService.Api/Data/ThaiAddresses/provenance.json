@@ -1,0 +1,18 @@
+{
+  "sourceUrl": "https://github.com/thailand-geography-data/thailand-geography-json",
+  "sourceRevision": "b8b3fb91c7df1129ff5b43cb46f7fcffadd2156b",
+  "file": "src/geography.json",
+  "retrievedDate": "2026-10-06",
+  "license": "MIT",
+  "licenseFile": "LICENSE",
+  "sha256": "04169F87D7B7A21B0A5E14F05B7FE16BAB22E7BD9EE5340A7517C6170156F113",
+  "provinceCount": 77,
+  "districtCount": 928,
+  "subdistrictCount": 7436,
+  "combinationCount": 7436,
+  "corrections": [],
+  "aliases": { "10": ["กรุงเทพฯ", "กทม.", "กทม"] },
+  "retainedLocationDataComparison": "pending-reviewed-retained-export",
+  "postalCoverageLimit": "Upstream has one postcode per subdistrict. Engine supports multiple relationships; additional relationships require reviewed evidence.",
+  "productionReleaseAcceptance": "pending-retained-reconciliation-and-consumer-AppHost-evidence"
+}
