@@ -1,0 +1,69 @@
+{
+  "forecast": 20,
+  "fullForecast": 355,
+  "acceptedBaseFullPassed": 335,
+  "methods": {
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoAndHealthSourceDiagnosticsTests.NormalCountryHttpAndOwnDatabaseCaptureAndAssertExactSourceLiteralParity": 7,
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoAndHealthSourceDiagnosticsTests.NormalAnonymousHealthUsesCatalogPrefixWithoutAddingLegacyAliases": 3,
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoSchemaUpdaterTests.CompleteAuthoritativePreimagesPreserveRowsAndMakeRepeatedUpdateIdempotent": 4,
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoSchemaUpdaterTests.UnprovablePreimagesFailClosedWithoutChangingSchemaOrStoredRows": 4,
+    "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoSchemaUpdaterTests.ConsolidatedMigrationAndRollbackRejectRetainedRowsWithoutChangingSchema": 2
+  },
+  "cases": {
+    "empty": [
+      "",
+      ""
+    ],
+    "short": [
+      "T",
+      "T"
+    ],
+    "trailing-space": [
+      "T ",
+      "TH "
+    ],
+    "null": [
+      null,
+      null
+    ],
+    "bmp-boundary": [
+      "TH",
+      "THA"
+    ],
+    "supplementary-boundary": [
+      "\ud83d\ude00",
+      "\ud83d\ude00A"
+    ],
+    "whitespace": [
+      "  ",
+      "   "
+    ]
+  },
+  "health": {
+    "liveness": [
+      "/catalog/liveness",
+      true
+    ],
+    "readiness": [
+      "/catalog/readiness",
+      true
+    ],
+    "old-material-prefix": [
+      "/materials/liveness",
+      false
+    ]
+  },
+  "sourceCountryModel": {
+    "snapshot": "135e526d0dab85c415b3afdcefd7b70fe2c82e2f",
+    "path": "Maliev.CountryService.Data/Database/CountryContext/CountryContext.cs",
+    "sha256": "188046059d803b4a8b08cc421a9b10fbbd7331bd6a170ca40ec3470472de645f",
+    "fixedWidthConfigurationAbsent": true
+  },
+  "materialStartupSourceSha": "eb11c81a6c759e1d4bcd1a1b3b28dc5f30cc02cb",
+  "diagnosticAcceptanceIsNotSourceParityAcceptance": true,
+  "actualAuthOrDeploymentProven": false,
+  "observedTargetColumnTypes": {
+    "Iso2": "character varying(2)",
+    "Iso3": "character varying(3)"
+  }
+}

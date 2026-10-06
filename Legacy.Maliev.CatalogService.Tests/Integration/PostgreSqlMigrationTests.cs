@@ -170,7 +170,9 @@ public sealed class PostgreSqlMigrationTests(PostgreSqlFixture fixture)
             await command.ExecuteNonQueryAsync();
         }
 
-        await context.Database.MigrateAsync();
+        // This retained-row test exercises only the timestamp migration and its rollback.
+        // The later ISO migration's retained-row rejection has dedicated native guard tests.
+        await context.Database.MigrateAsync("20260721040658_FixTimestampColumnTypeAndAddCountryCurrency");
 
         await using var readCommand = context.Database.GetDbConnection().CreateCommand();
         readCommand.CommandText = "SELECT \"CreatedDate\" FROM \"Country\" WHERE \"Name\" = 'UTC migration fixture';";

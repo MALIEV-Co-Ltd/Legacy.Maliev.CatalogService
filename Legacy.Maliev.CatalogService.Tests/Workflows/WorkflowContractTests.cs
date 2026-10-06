@@ -17,6 +17,8 @@ public sealed class WorkflowContractTests
     public void BuildAndTest_SatisfiesStructuralContract()
     {
         WorkflowContractValidator.Validate(Workflow);
+        AssertMutationRejected("      CATALOG_SOURCE_DIAGNOSTIC_OUTPUT_DIRECTORY: ${{ github.workspace }}/runner-results/country-health-diagnostics\n", "");
+        AssertMutationRejected("      - name: Verify full 355 executions and original Country/health diagnostic exports\n        run: python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports\n", "");
     }
 
     [Fact]
@@ -237,17 +239,18 @@ internal static partial class WorkflowContractValidator
 
         RequireScalarValue(validateJob, "name", "validate");
         var environment = RequireMapping(validateJob, "env");
-        if (environment.Children.Count != 4) throw new InvalidOperationException("Require exact local dependency and raw evidence environment.");
+        if (environment.Children.Count != 5) throw new InvalidOperationException("Require exact local dependency and raw evidence environment.");
         RequireScalarValue(environment, "MalievWorkspaceRoot", "${{ github.workspace }}/.dependencies");
         RequireScalarValue(environment, "VSTestCollect", "XPlat Code Coverage");
         RequireScalarValue(environment, "VSTestLogger", "trx");
         RequireScalarValue(environment, "VSTestResultsDirectory", "${{ github.workspace }}/runner-results");
+        RequireScalarValue(environment, "CATALOG_SOURCE_DIAGNOSTIC_OUTPUT_DIRECTORY", "${{ github.workspace }}/runner-results/country-health-diagnostics");
         RejectDuplicatedValidationActionsAndCommands(jobs);
 
         var steps = RequireSequence(validateJob, "steps");
-        if (steps.Children.Count != 6)
+        if (steps.Children.Count != 7)
         {
-            throw new InvalidOperationException("Validate job must contain exactly six caller-owned steps.");
+            throw new InvalidOperationException("Validate job must contain exactly seven caller-owned steps.");
         }
 
         ValidateStep(
@@ -289,7 +292,11 @@ internal static partial class WorkflowContractValidator
         if (gate.Children.Count != 2) throw new InvalidOperationException("Coverage gate must only name and execute the owned validator.");
         RequireScalarValue(gate, "name", "Gate owned production coverage");
         RequireScalarValue(gate, "run", "python3 -B scripts/verify-runner-coverage.py runner-results");
-        var artifact = RequireMapping(steps.Children[5], "validation artifact");
+        var diagnostic = RequireMapping(steps.Children[5], "diagnostic gate");
+        if (diagnostic.Children.Count != 2) throw new InvalidOperationException("Diagnostic gate must only name and execute the owned validator.");
+        RequireScalarValue(diagnostic, "name", "Verify full 355 executions and original Country/health diagnostic exports");
+        RequireScalarValue(diagnostic, "run", "python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports");
+        var artifact = RequireMapping(steps.Children[6], "validation artifact");
         if (artifact.Children.Count != 4) throw new InvalidOperationException("Evidence retention must remain unconditional.");
         RequireScalarValue(artifact, "name", "Preserve validation evidence");
         RequireScalarValue(artifact, "if", "always()");
