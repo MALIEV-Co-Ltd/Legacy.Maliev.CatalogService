@@ -4,7 +4,10 @@ import ast
 import datetime as dt
 import importlib.util
 import json
+import io
+import contextlib
 from pathlib import Path
+import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -91,11 +94,85 @@ class BuildClaimControls(unittest.TestCase):
              patch.object(module.dt, 'datetime', FixedClock), \
              patch.dict(module.os.environ, CATALOG_BUILD_PERMIT=json.dumps(claim), GITHUB_SHA=self.head,
                         GITHUB_RUN_ID='123', GITHUB_RUN_ATTEMPT='1'), \
+             patch.object(module, 'event_permit', return_value=json.dumps(claim)) as event, \
              patch.object(module.os, 'geteuid', create=True, side_effect=AssertionError('native allocation reached')), \
              patch.object(module.importlib.util, 'spec_from_file_location', side_effect=AssertionError('supervisor import reached')):
             module.main()
-            module.os.environ['CATALOG_BUILD_PERMIT'] = ''
+            event.return_value = ''
             with self.assertRaises(ValueError): module.main()
+    def event(self, value):
+        temporary = tempfile.TemporaryDirectory(prefix='catalog-claim-pure-')
+        self.addCleanup(temporary.cleanup)
+        target = Path(temporary.name) / 'event.json'
+        target.write_bytes(value)
+        return target
+    def test_actual_bounded_event_preserves_literal_claim_bytes(self):
+        raw = json.dumps(self.claim, indent=2) + '\n'
+        target = self.event(json.dumps({'inputs': {'build_permit': raw}}).encode())
+        self.assertEqual(raw, module.event_permit(str(target)))
+    def test_actual_event_missing_duplicate_wrong_type_and_oversized_refused(self):
+        for raw in (b'{}', b'{"inputs":{}}', b'{"inputs":{"build_permit":false}}',
+                    b'{"inputs":{"build_permit":"first","build_permit":"second"}}',
+                    json.dumps({'inputs': {'build_permit': 'x' * 4097}}).encode(),
+                    b' ' * 1048577):
+            with self.subTest(size=len(raw)):
+                target = self.event(raw)
+                with self.assertRaises(ValueError): module.event_permit(str(target))
+    def test_actual_event_nonabsolute_symlink_and_replaced_identity_refused(self):
+        with self.assertRaises(ValueError): module.event_permit('event.json')
+        target = self.event(b'{"inputs":{"build_permit":"bounded"}}')
+        with patch.object(module.Path, 'is_symlink', return_value=True):
+            with self.assertRaises(ValueError): module.event_permit(str(target))
+        real = target.stat()
+        changed = SimpleNamespace(st_dev=real.st_dev, st_ino=real.st_ino + 1)
+        with patch.object(module.os, 'fstat', return_value=changed):
+            with self.assertRaises(ValueError): module.event_permit(str(target))
+    def test_actual_mask_escapes_multiline_percent_and_workflow_commands(self):
+        raw = 'first%line\r\n::warning::private-value\nlast'
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out): module.mask_permit(raw)
+        commands = out.getvalue().splitlines()
+        self.assertEqual(4, len(commands))
+        self.assertTrue(all(line.startswith('::add-mask::') for line in commands))
+        self.assertEqual('::add-mask::first%25line%0D%0A::warning::private-value%0Alast', commands[0])
+        self.assertNotIn('\r', out.getvalue())
+        self.assertEqual('::add-mask::::warning::private-value', commands[2])
+    def test_actual_mask_main_never_loads_policy_or_supervisor(self):
+        target = self.event(b'{"inputs":{"build_permit":"synthetic-claim"}}')
+        out = io.StringIO()
+        with patch.dict(module.os.environ, GITHUB_EVENT_PATH=str(target), CATALOG_BUILD_EVENT_PATH=''), \
+             patch.object(module.sys, 'argv', ['claim-gate', '--mask-permit']), \
+             patch.object(module.Path, 'read_bytes', side_effect=AssertionError('policy source reached')), \
+             patch.object(module.importlib.util, 'spec_from_file_location', side_effect=AssertionError('supervisor reached')), \
+             patch.object(module.os, 'geteuid', create=True, side_effect=AssertionError('native reached')), \
+             contextlib.redirect_stdout(out):
+            # A nonblank explicit override is required; normal runner uses GITHUB_EVENT_PATH.
+            module.os.environ.pop('CATALOG_BUILD_EVENT_PATH')
+            module.main()
+        self.assertEqual('::add-mask::synthetic-claim\n', out.getvalue())
+    def test_actual_read_only_gate_uses_event_not_untrusted_echoed_environment(self):
+        policy = json.loads((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes())
+        claim = dict(self.claim, sourceManifestSha256=policy['sourceManifestSha256'], capsuleSha256=policy['capsuleSha256'])
+        target = self.event(json.dumps({'inputs': {'build_permit': json.dumps(claim)}}).encode())
+        instant = self.now
+        class FixedClock(dt.datetime):
+            @classmethod
+            def now(cls, tz=None): return instant
+        with patch.dict(module.os.environ, CATALOG_BUILD_EVENT_PATH=str(target), CATALOG_BUILD_PERMIT='foreign-or-expired',
+                        GITHUB_SHA=self.head, GITHUB_RUN_ID='123', GITHUB_RUN_ATTEMPT='1'), \
+             patch.object(module.sys, 'argv', ['claim-gate', '--verify-permit']), \
+             patch.object(module.dt, 'datetime', FixedClock), \
+             patch.object(module.importlib.util, 'spec_from_file_location', side_effect=AssertionError('supervisor reached')):
+            module.main()
+    def test_workflow_masks_first_and_never_interpolates_claim_into_environment(self):
+        workflow = (SCRIPT.parents[1] / '.github/workflows/catalog-candidate-qualification.yml').read_text()
+        mask = workflow.index('run_catalog_build_grant.py --mask-permit')
+        self.assertLess(mask, workflow.index('Check out exact clean accepted base'))
+        self.assertLess(mask, workflow.index('run_catalog_build_grant.py --verify-permit'))
+        self.assertLess(mask, workflow.index('uses: actions/setup-dotnet@'))
+        self.assertNotIn('${{ inputs.build_permit }}', workflow)
+        self.assertNotIn('BUILD_PERMIT:', workflow)
+        self.assertIn('CATALOG_BUILD_EVENT_PATH="$GITHUB_EVENT_PATH"', workflow)
     def finalization(self, body_failure=None, metadata_failure=None, report_failure=None):
         tree = ast.parse(SCRIPT.read_text())
         main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'main')

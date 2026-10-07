@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 
 SCRIPT = Path(__file__).resolve()
@@ -19,6 +20,36 @@ def unique(pairs):
             raise ValueError('Duplicate build claim key')
         result[key] = value
     return result
+
+def event_permit(path):
+    # Read the runner's event file, never an echoed step environment value.
+    target = Path(path)
+    if not path or not target.is_absolute() or target.is_symlink():
+        raise ValueError('Absolute regular runner event file required')
+    before = target.stat()
+    if not stat.S_ISREG(before.st_mode) or before.st_size > 1048576:
+        raise ValueError('Bounded regular runner event file required')
+    with target.open('rb') as stream:
+        opened = os.fstat(stream.fileno())
+        if (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
+            raise ValueError('Runner event identity changed')
+        data = stream.read(1048577)
+    if len(data) > 1048576:
+        raise ValueError('Runner event exceeds bound')
+    event = json.loads(data, object_pairs_hook=unique)
+    inputs = event.get('inputs') if isinstance(event, dict) else None
+    raw = inputs.get('build_permit') if isinstance(inputs, dict) else None
+    if not isinstance(raw, str) or len(raw.encode()) > 4096:
+        raise ValueError('Bounded runner BUILD-only input required')
+    return raw
+
+def mask_permit(raw):
+    # Workflow-command escaping prevents multiline input from injecting commands.
+    # Register both the complete value and nonblank lines before later steps.
+    for value in dict.fromkeys([raw, *raw.splitlines()]):
+        if value:
+            encoded = value.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+            print('::add-mask::' + encoded, flush=True)
 
 def validate(raw, policy, head, now):
     if not isinstance(raw, str) or len(raw.encode()) > 4096:
@@ -67,8 +98,11 @@ def run_build(supervisor, raw, policy, head, executable, clock):
     return claim
 
 def main():
+    raw = event_permit(os.environ.get('CATALOG_BUILD_EVENT_PATH', os.environ.get('GITHUB_EVENT_PATH', '')))
+    if len(sys.argv) == 2 and sys.argv[1] == '--mask-permit':
+        mask_permit(raw)
+        return  # No policy/supervisor import or native allocation.
     policy = json.loads((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes(), object_pairs_hook=unique)
-    raw = os.environ.get('CATALOG_BUILD_PERMIT', '')
     head = os.environ.get('GITHUB_SHA', '')
     clock = lambda: dt.datetime.now(dt.timezone.utc)
     claim = validate(raw, policy, head, clock())
