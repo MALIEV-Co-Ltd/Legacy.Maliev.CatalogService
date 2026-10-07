@@ -98,14 +98,22 @@ class TransportControls(unittest.TestCase):
         policy['sourcePins'][next(iter(policy['sourcePins']))] = '0' * 40
         with self.assertRaisesRegex(ValueError, 'dependency pins'):
             self.validate(policy=policy)
-    def test_committed_policy_is_exact_catalog_v7_inventory(self):
+    def test_committed_policy_is_exact_catalog_v8_inventory(self):
         policy = module.parse((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes())
         self.assertEqual(module.REPOSITORY, policy['repository'])
         self.assertEqual(module.BASE, policy['acceptedBase'])
         self.assertEqual(module.SOURCE_PINS, policy['sourcePins'])
         self.assertEqual(24, len(policy['sourceFiles']))
         self.assertEqual(24, len({row['path'] for row in policy['sourceFiles']}))
-        self.assertEqual('09caf2bfdc02e708bc864f2d41fe9457e772f01ee002670fe3814a9a503766ee', policy['sourceManifestSha256'])
+        self.assertEqual('b39e3c4af055cf9c8275492fad2982eafbf5b00528e547a427db5fa0bf4466e9', policy['sourceManifestSha256'])
+        self.assertEqual('5bfe305a962f28216c709d744d8b004825fc7a78039d6b7d2a1c82cf7f35d09c', policy['capsuleSha256'])
+        rows = {row['path']: row for row in policy['sourceFiles']}
+        for path, size, sha in (
+            ('scripts/run-catalog-owned-qualification.py', 43392, '33e84c4311ebe843a8692048e1715436fbea3c7ef56c9c12e92bc764b109df8c'),
+            ('scripts/test-catalog-owned-qualification.py', 20619, 'bf9420f68bba18d8aca733e4a8366231740de33471f520b95fdfbbf075839613'),
+            ('docs/catalog-owned-qualification-source-20261008.md', 5102, '67d5269b902c60ac773964ed7f80efaceab17b409e27ce46c38b146205c12793')):
+            self.assertEqual(size, rows[path]['bytes'])
+            self.assertEqual(sha, rows[path]['sha256'])
     def test_workflow_keeps_pr_pure_and_native_main_only(self):
         workflow = (SCRIPT.parents[1] / '.github/workflows/catalog-candidate-qualification.yml').read_text()
         self.assertIn("if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'", workflow)

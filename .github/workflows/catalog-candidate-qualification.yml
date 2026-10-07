@@ -20,7 +20,7 @@ on:
           - controller-smoke
           - sealed-native
       manifest_blob:
-        description: Same-repository immutable blob of reviewed V7 manifest
+        description: Same-repository immutable blob of reviewed V8 manifest
         required: true
         type: string
       capsule_blob:
