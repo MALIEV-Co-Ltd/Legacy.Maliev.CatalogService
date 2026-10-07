@@ -98,20 +98,20 @@ class TransportControls(unittest.TestCase):
         policy['sourcePins'][next(iter(policy['sourcePins']))] = '0' * 40
         with self.assertRaisesRegex(ValueError, 'dependency pins'):
             self.validate(policy=policy)
-    def test_committed_policy_is_exact_catalog_v8_inventory(self):
+    def test_committed_policy_is_exact_catalog_v10_inventory(self):
         policy = module.parse((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes())
         self.assertEqual(module.REPOSITORY, policy['repository'])
         self.assertEqual(module.BASE, policy['acceptedBase'])
         self.assertEqual(module.SOURCE_PINS, policy['sourcePins'])
         self.assertEqual(24, len(policy['sourceFiles']))
         self.assertEqual(24, len({row['path'] for row in policy['sourceFiles']}))
-        self.assertEqual('b39e3c4af055cf9c8275492fad2982eafbf5b00528e547a427db5fa0bf4466e9', policy['sourceManifestSha256'])
-        self.assertEqual('5bfe305a962f28216c709d744d8b004825fc7a78039d6b7d2a1c82cf7f35d09c', policy['capsuleSha256'])
+        self.assertEqual('d011a48a8bed7685b43d775ef856866de10e5b81e2f05546ce5e96904cdc48f8', policy['sourceManifestSha256'])
+        self.assertEqual('404dd2d19d20722e216badcccc5609593a5f15ea48c3a016951fdd7baba709c3', policy['capsuleSha256'])
         rows = {row['path']: row for row in policy['sourceFiles']}
         for path, size, sha in (
-            ('scripts/run-catalog-owned-qualification.py', 43392, '33e84c4311ebe843a8692048e1715436fbea3c7ef56c9c12e92bc764b109df8c'),
-            ('scripts/test-catalog-owned-qualification.py', 20619, 'bf9420f68bba18d8aca733e4a8366231740de33471f520b95fdfbbf075839613'),
-            ('docs/catalog-owned-qualification-source-20261008.md', 5102, '67d5269b902c60ac773964ed7f80efaceab17b409e27ce46c38b146205c12793')):
+            ('scripts/run-catalog-owned-qualification.py', 48031, '2bedc53e0e6133070be84331761f3b756947ddaa9128098a6c1bfad8d846b851'),
+            ('scripts/test-catalog-owned-qualification.py', 31863, 'a81de606a53665816295cfa0773541d0982cc4342e071d247f0d8ff9b7434f54'),
+            ('docs/catalog-owned-qualification-source-20261008.md', 8307, '7bf330ea53ac5c3e04457358e24823b9470aabd2258abee9748cb67b1e58d25c')):
             self.assertEqual(size, rows[path]['bytes'])
             self.assertEqual(sha, rows[path]['sha256'])
     def test_workflow_keeps_pr_pure_and_native_main_only(self):

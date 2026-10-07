@@ -27,7 +27,7 @@ on:
         required: false
         type: string
       manifest_blob:
-        description: Same-repository immutable blob of reviewed V8 manifest
+        description: Same-repository immutable blob of reviewed V10 manifest
         required: true
         type: string
       capsule_blob:
