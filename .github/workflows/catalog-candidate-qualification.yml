@@ -1,0 +1,129 @@
+name: Catalog sealed uncommitted candidate qualification
+
+on:
+  pull_request:
+    paths:
+      - scripts/materialize_catalog_candidate.py
+      - scripts/tests/test_materialize_catalog_candidate.py
+      - scripts/catalog-candidate-policy.json
+      - .github/workflows/catalog-candidate-qualification.yml
+  workflow_dispatch:
+    inputs:
+      manifest_blob:
+        description: Same-repository immutable blob of reviewed V7 manifest
+        required: true
+        type: string
+      capsule_blob:
+        description: Same-repository immutable blob of exact24 raw Catalog postimages
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-owned-candidate-qualification
+  cancel-in-progress: false
+
+jobs:
+  transport-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Pure bounded transport controls
+        run: python3 -B -m unittest discover -s scripts/tests -p test_materialize_catalog_candidate.py
+
+  candidate-native:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: transport-controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      MalievWorkspaceRoot: ${{ github.workspace }}/candidate/.dependencies
+    steps:
+      - name: Check out trusted transport
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out exact clean accepted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 3f426723743570a6c20d2c014499445abb0774e1
+          path: candidate
+          persist-credentials: false
+      - name: Verify immutable raw source and materialize without committing CSharp
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MANIFEST_BLOB: ${{ inputs.manifest_blob }}
+          CAPSULE_BLOB: ${{ inputs.capsule_blob }}
+        run: |
+          python3 -B scripts/materialize_catalog_candidate.py --manifest-blob "$MANIFEST_BLOB" --capsule-blob "$CAPSULE_BLOB"
+      - name: Check out exact Defaults dependency
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults
+          ref: 7edcd961024868513fd5f373cab3dcb261197f77
+          path: candidate/.dependencies/Legacy.Maliev.ServiceDefaults
+          persist-credentials: false
+      - name: Check out exact Contracts dependency
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts
+          ref: 78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7
+          path: candidate/.dependencies/Legacy.Maliev.CompatibilityContracts
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify original dependency heads and pure supervisor controls
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .dependencies/Legacy.Maliev.ServiceDefaults rev-parse HEAD)" = 7edcd961024868513fd5f373cab3dcb261197f77
+          test "$(git -C .dependencies/Legacy.Maliev.CompatibilityContracts rev-parse HEAD)" = 78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7
+          python3 -B scripts/test-catalog-owned-qualification.py
+      - name: Actual owned build first, focused tests, complete374, format and typed audit
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="$(readlink -f "$(command -v dotnet)")"
+          for phase in build focused full format audit; do
+            sudo env -i PATH="$PATH" HOME="$HOME" DOTNET_ROOT="${DOTNET_ROOT:-}" MalievWorkspaceRoot="$MalievWorkspaceRoot" \
+              MALIEV_CATALOG_EVIDENCE_UID="$(id -u)" MALIEV_CATALOG_EVIDENCE_GID="$(id -g)" \
+              python3 -B scripts/run-catalog-owned-qualification.py "$phase" "$sdk"
+          done
+      - name: Unchanged raw coverage floors and exact full execution gate
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          full=(runner-results/owned-full-*/results)
+          test "${#full[@]}" -eq 1
+          sudo python3 -B scripts/verify-runner-coverage.py "${full[0]}"
+          sudo python3 -B scripts/verify-country-health-diagnostics.py "${full[0]}" --full --exports
+      - name: Recheck exact source after every native outcome
+        if: always()
+        run: python3 -B scripts/materialize_catalog_candidate.py --verify-only
+      - name: Preserve raw test and bounded ownership evidence, never SDK private logs/cache
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: catalog-candidate-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence/source-materialization.json
+            candidate/runner-results/owned-*/results
+            candidate/runner-results/owned-*/cleanup-barrier.json
+            candidate/runner-results/owned-*/admission.json
+            candidate/runner-results/owned-*/child.json
+            candidate/runner-results/owned-*/intents
+            candidate/runner-results/owned-*/published-*.json
+            candidate/runner-results/owned-*/absent-*.json
+            candidate/runner-results/owned-*/container-*.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: false

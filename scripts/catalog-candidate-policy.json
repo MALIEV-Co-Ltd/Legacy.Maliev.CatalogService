@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
+  "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
+  "sourceManifestSha256": "09caf2bfdc02e708bc864f2d41fe9457e772f01ee002670fe3814a9a503766ee",
+  "capsuleSha256": "2d5d9eb0b7292fc1a3579512620f75dee4bcf32e8e5baa331907c17136644b89",
+  "sourcePins": {
+    "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
+    "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
+  },
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/_build-and-test.yml",
+      "sha256": "718b37aabd5f88aff28e1df16e5bbd07f87a204bc788851ee18d81c464ce15ed",
+      "bytes": 2255
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Application/Models/CatalogModels.cs",
+      "sha256": "bd671c85be7af0555c3169f4a71bbf78792869fda36567f3e2630bcba0ad3ce9",
+      "bytes": 7072
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogHttpLifecycleTests.cs",
+      "sha256": "9da98f76b401824329b692ff10c5c6a2422e1095acaa932fdbed0a8fc964bbc9",
+      "bytes": 46328
+    },
+    {
+      "path": "scripts/country-health-diagnostic-expected.json",
+      "sha256": "2eb6988d39c2128fa4797b6c550cdd150d93202a42001e8377ae08011052d693",
+      "bytes": 2090
+    },
+    {
+      "path": "docs/material-group-literal-name-source-parity-20261008.md",
+      "sha256": "3f8a71164210a34f7d8db54c0b39d9236e0d9db515bbb1cd2ff5423f36df5853",
+      "bytes": 3171
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/CatalogResourceAssembly.cs",
+      "sha256": "20cc4ce193f29a35e0a1db87435affe406e5cdea443fd5f9ee6fbd9c66e94a19",
+      "bytes": 181
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs",
+      "sha256": "eccca601308b2d850ce04f414e04c3d4be126b857e7ea554410e7e8ec61b5780",
+      "bytes": 13141
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetime.cs",
+      "sha256": "901a0155ad789fa5150b13ac60c63da5f0c07a9a52ed6d9b51fc50d0c0851276",
+      "bytes": 19974
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetimeTests.cs",
+      "sha256": "1beaa6171cbd717cbf64115d6727b64ced92b9ebe52edd15a4e4fbf86f47fc83",
+      "bytes": 14019
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/AdditiveMaterialReconciliationStartupTests.cs",
+      "sha256": "90447b98454b86b53c33622fd7af230ec05353731dde7c59066f404e00e20298",
+      "bytes": 26623
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogMaterialCollectionFailureHttpTests.cs",
+      "sha256": "db3ac02f997b803474ac2ba88809225702709d8a5bbd1295b0cedcb1594f4bab",
+      "bytes": 12153
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialCollectionFailureFixture.cs",
+      "sha256": "0e96f4fe29aac0a583a66abf0d286c8e5a810fb49181d9b12efcb6864ca048d7",
+      "bytes": 14343
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/PostgreSqlMigrationTests.cs",
+      "sha256": "c73370f2dad340bed8178c3e06d0e5963cfcff3e2d22087ef1ce0ab0c5f2d1a0",
+      "bytes": 9632
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/ReadOnlyCatalogStartupFixture.cs",
+      "sha256": "b76a1f8f64e3306e77c9900a6aeb2cc915baf0d17e9ce35d0bf86ef5aeb9b909",
+      "bytes": 12664
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/ReadOnlyCatalogStartupTests.cs",
+      "sha256": "324b4ff5019452d066ec867f260ad948add06e95cda39c4ed5116d971225d1ea",
+      "bytes": 12139
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogEntrypointSettlement.cs",
+      "sha256": "0ba30672ea3346d9ee45faf9c0657bfc7e7004ccf211eb71e33a5c49ba3baf05",
+      "bytes": 4938
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogNativeScope.cs",
+      "sha256": "4599193298b8cacbeb15670229379ccc8c509f7cc7f2db3cf7fb4da8ba353b82",
+      "bytes": 10572
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs",
+      "sha256": "38f2acb014a2d4c13d4a8b9dabdcd4ee641116e23cb2ecc4971b7c651fed52bf",
+      "bytes": 12207
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedisConnection.cs",
+      "sha256": "1bbacf811a2d1015b1ee86a057c444c85804c71dd50a66384252d2f4a8895f30",
+      "bytes": 1354
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogSdkOwnership.cs",
+      "sha256": "4f02c026b5f77a4ba66268f6b2fd5266d662f836ff5793f336a16a06c97ee21d",
+      "bytes": 5454
+    },
+    {
+      "path": "scripts/run-catalog-owned-qualification.py",
+      "sha256": "e23d24e984cf6e66be4de4adfefe0d5284edcd296f063a36c53c11ea800e1903",
+      "bytes": 39822
+    },
+    {
+      "path": "scripts/test-catalog-owned-qualification.py",
+      "sha256": "47edd255ccab3603f7d1ca3f05f373ea3feb35ba0d3cd6779313de6f2fbd9394",
+      "bytes": 15349
+    },
+    {
+      "path": "docs/catalog-owned-qualification-source-20261008.md",
+      "sha256": "e3868ed9951eee595484fa1734e0f621d096cb4e69c1f6fc08be3eb651e1022b",
+      "bytes": 4011
+    },
+    {
+      "path": ".github/workflows/catalog-owned-qualification.yml",
+      "sha256": "616d1eca0195bef1a35a5aafc9f5d77e5f2b233bf2627f1630e34b41a5dce4bb",
+      "bytes": 2925
+    }
+  ]
+}
