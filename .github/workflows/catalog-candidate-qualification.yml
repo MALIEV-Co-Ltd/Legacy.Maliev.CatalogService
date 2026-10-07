@@ -8,6 +8,8 @@ on:
       - scripts/catalog-candidate-policy.json
       - scripts/probe_catalog_controller.py
       - scripts/tests/test_catalog_controller.py
+      - scripts/run_catalog_build_grant.py
+      - scripts/tests/test_catalog_build_grant.py
       - .github/workflows/catalog-candidate-qualification.yml
   workflow_dispatch:
     inputs:
@@ -18,7 +20,12 @@ on:
         type: choice
         options:
           - controller-smoke
+          - sealed-build
           - sealed-native
+      build_permit:
+        description: Root-issued BUILD-only bounded JSON admission claim; not issuer authentication
+        required: false
+        type: string
       manifest_blob:
         description: Same-repository immutable blob of reviewed V8 manifest
         required: true
@@ -47,6 +54,7 @@ jobs:
         run: |
           python3 -B -m unittest discover -s scripts/tests -p test_materialize_catalog_candidate.py
           python3 -B -m unittest discover -s scripts/tests -p test_catalog_controller.py
+          python3 -B -m unittest discover -s scripts/tests -p test_catalog_build_grant.py
 
   candidate-native:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
@@ -93,12 +101,17 @@ jobs:
           set -euo pipefail
           sudo env -i PATH="$PATH" MALIEV_CATALOG_EVIDENCE_UID="$(id -u)" MALIEV_CATALOG_EVIDENCE_GID="$(id -g)" \
             python3 -B scripts/probe_catalog_controller.py
+      - name: Refuse missing or expired BUILD-only claim before SDK setup
+        if: inputs.mode == 'sealed-build'
+        env:
+          CATALOG_BUILD_PERMIT: ${{ inputs.build_permit }}
+        run: python3 -B scripts/run_catalog_build_grant.py --verify-permit
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
-        if: inputs.mode == 'sealed-native'
+        if: inputs.mode == 'sealed-native' || inputs.mode == 'sealed-build'
         with:
           dotnet-version: 10.0.x
       - name: Verify original dependency heads and pure supervisor controls
-        if: inputs.mode == 'sealed-native'
+        if: inputs.mode == 'sealed-native' || inputs.mode == 'sealed-build'
         working-directory: candidate
         shell: bash
         run: |
@@ -106,6 +119,19 @@ jobs:
           test "$(git -C .dependencies/Legacy.Maliev.ServiceDefaults rev-parse HEAD)" = 7edcd961024868513fd5f373cab3dcb261197f77
           test "$(git -C .dependencies/Legacy.Maliev.CompatibilityContracts rev-parse HEAD)" = 78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7
           python3 -B scripts/test-catalog-owned-qualification.py
+      - name: Actual BUILD-only under Root-issued finite admission claim
+        if: inputs.mode == 'sealed-build'
+        working-directory: candidate
+        shell: bash
+        env:
+          BUILD_PERMIT: ${{ inputs.build_permit }}
+        run: |
+          set -euo pipefail
+          sdk="$(readlink -f "$(command -v dotnet)")"
+          sudo env -i PATH="$PATH" HOME="$HOME" DOTNET_ROOT="${DOTNET_ROOT:-}" MalievWorkspaceRoot="$MalievWorkspaceRoot" \
+            MALIEV_CATALOG_EVIDENCE_UID="$(id -u)" MALIEV_CATALOG_EVIDENCE_GID="$(id -g)" \
+            CATALOG_BUILD_PERMIT="$BUILD_PERMIT" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" \
+            python3 -B ../scripts/run_catalog_build_grant.py "$sdk"
       - name: Actual owned build first, focused tests, complete374, format and typed audit
         if: inputs.mode == 'sealed-native'
         working-directory: candidate
@@ -139,6 +165,7 @@ jobs:
           path: |
             evidence/source-materialization.json
             evidence/controller-*
+            evidence/build-claim-*.json
             candidate/runner-results/owned-*/results
             candidate/runner-results/owned-*/cleanup-barrier.json
             candidate/runner-results/owned-*/admission.json
