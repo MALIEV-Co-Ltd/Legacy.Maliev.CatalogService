@@ -27,7 +27,7 @@ on:
         required: false
         type: string
       manifest_blob:
-        description: Same-repository immutable blob of reviewed V10 manifest
+        description: Same-repository immutable blob of reviewed V11 manifest
         required: true
         type: string
       capsule_blob:
@@ -68,6 +68,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Mask BUILD-only claim before any later step logs
+        if: inputs.mode == 'sealed-build'
+        run: python3 -B scripts/run_catalog_build_grant.py --mask-permit
       - name: Check out exact clean accepted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -103,8 +106,6 @@ jobs:
             python3 -B scripts/probe_catalog_controller.py
       - name: Refuse missing or expired BUILD-only claim before SDK setup
         if: inputs.mode == 'sealed-build'
-        env:
-          CATALOG_BUILD_PERMIT: ${{ inputs.build_permit }}
         run: python3 -B scripts/run_catalog_build_grant.py --verify-permit
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
         if: inputs.mode == 'sealed-native' || inputs.mode == 'sealed-build'
@@ -123,14 +124,12 @@ jobs:
         if: inputs.mode == 'sealed-build'
         working-directory: candidate
         shell: bash
-        env:
-          BUILD_PERMIT: ${{ inputs.build_permit }}
         run: |
           set -euo pipefail
           sdk="$(readlink -f "$(command -v dotnet)")"
           sudo env -i PATH="$PATH" HOME="$HOME" DOTNET_ROOT="${DOTNET_ROOT:-}" MalievWorkspaceRoot="$MalievWorkspaceRoot" \
             MALIEV_CATALOG_EVIDENCE_UID="$(id -u)" MALIEV_CATALOG_EVIDENCE_GID="$(id -g)" \
-            CATALOG_BUILD_PERMIT="$BUILD_PERMIT" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" \
+            CATALOG_BUILD_EVENT_PATH="$GITHUB_EVENT_PATH" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" \
             python3 -B ../scripts/run_catalog_build_grant.py "$sdk"
       - name: Actual owned build first, focused tests, complete374, format and typed audit
         if: inputs.mode == 'sealed-native'
