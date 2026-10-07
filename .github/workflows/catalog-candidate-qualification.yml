@@ -6,9 +6,19 @@ on:
       - scripts/materialize_catalog_candidate.py
       - scripts/tests/test_materialize_catalog_candidate.py
       - scripts/catalog-candidate-policy.json
+      - scripts/probe_catalog_controller.py
+      - scripts/tests/test_catalog_controller.py
       - .github/workflows/catalog-candidate-qualification.yml
   workflow_dispatch:
     inputs:
+      mode:
+        description: Controller proof only, or reviewed sealed native qualification
+        required: true
+        default: controller-smoke
+        type: choice
+        options:
+          - controller-smoke
+          - sealed-native
       manifest_blob:
         description: Same-repository immutable blob of reviewed V7 manifest
         required: true
@@ -34,7 +44,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Pure bounded transport controls
-        run: python3 -B -m unittest discover -s scripts/tests -p test_materialize_catalog_candidate.py
+        run: |
+          python3 -B -m unittest discover -s scripts/tests -p test_materialize_catalog_candidate.py
+          python3 -B -m unittest discover -s scripts/tests -p test_catalog_controller.py
 
   candidate-native:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
@@ -75,10 +87,18 @@ jobs:
           ref: 78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7
           path: candidate/.dependencies/Legacy.Maliev.CompatibilityContracts
           persist-credentials: false
+      - name: Actual controller-only admission and acquired-failure physical cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo env -i PATH="$PATH" MALIEV_CATALOG_EVIDENCE_UID="$(id -u)" MALIEV_CATALOG_EVIDENCE_GID="$(id -g)" \
+            python3 -B scripts/probe_catalog_controller.py
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        if: inputs.mode == 'sealed-native'
         with:
           dotnet-version: 10.0.x
       - name: Verify original dependency heads and pure supervisor controls
+        if: inputs.mode == 'sealed-native'
         working-directory: candidate
         shell: bash
         run: |
@@ -87,6 +107,7 @@ jobs:
           test "$(git -C .dependencies/Legacy.Maliev.CompatibilityContracts rev-parse HEAD)" = 78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7
           python3 -B scripts/test-catalog-owned-qualification.py
       - name: Actual owned build first, focused tests, complete374, format and typed audit
+        if: inputs.mode == 'sealed-native'
         working-directory: candidate
         shell: bash
         run: |
@@ -98,6 +119,7 @@ jobs:
               python3 -B scripts/run-catalog-owned-qualification.py "$phase" "$sdk"
           done
       - name: Unchanged raw coverage floors and exact full execution gate
+        if: inputs.mode == 'sealed-native'
         working-directory: candidate
         shell: bash
         run: |
@@ -116,6 +138,7 @@ jobs:
           name: catalog-candidate-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             evidence/source-materialization.json
+            evidence/controller-*
             candidate/runner-results/owned-*/results
             candidate/runner-results/owned-*/cleanup-barrier.json
             candidate/runner-results/owned-*/admission.json
