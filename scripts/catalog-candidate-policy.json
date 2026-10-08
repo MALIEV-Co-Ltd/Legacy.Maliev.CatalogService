@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "c598e154eac9fd95c2085deef6b00c5edc2a4218862a5e6bf4e8e962829743d7",
-  "capsuleSha256": "ef221b37e54a8f013609b4b042b229a5ca46215b27967b0d97723b8d2ee890ab",
+  "sourceManifestSha256": "ae60f2720c94a24258be10f5045cd7fd96b6130d14232a2e5852a06e097881a7",
+  "capsuleSha256": "26e546d4b69b911bda540350f661fca847c1896b715b8f51377fca326299ba20",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -21,8 +21,8 @@
     },
     {
       "path": "docs/catalog-owned-qualification-source-20261008.md",
-      "sha256": "2d50e339a287e6047f3d77a0548770f4c4b4f268edd4693501b0017b33454b26",
-      "bytes": 25321
+      "sha256": "c629536b26e994af07da7c3dca736c1430db2451a5b3482f177129d16d760502",
+      "bytes": 27076
     },
     {
       "path": "docs/material-group-literal-name-source-parity-20261008.md",
@@ -126,8 +126,8 @@
     },
     {
       "path": "scripts/catalog-ordinary-controller-seal.json",
-      "sha256": "5261671f3c2149ee09fb69c2b677a99522d803fcf8c598ab7b4c8b672113899a",
-      "bytes": 179
+      "sha256": "56596965b765c634c35094ef48f90695fd3e80aeaf9df6435b337ddae559e837",
+      "bytes": 185
     },
     {
       "path": "scripts/catalog_method_progress_projection.py",
@@ -151,13 +151,13 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "sha256": "8e6beead800999c13c5200ee0f5695f6798a3eff6f2694e03555994c872f859e",
-      "bytes": 59733
+      "sha256": "7aee7eea68debe4dbb88dfe8b74253f27329cdcf75b05e99cff68260e84d01aa",
+      "bytes": 59773
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
-      "sha256": "40833f910d0b4c7faf599f1cdfe02b4a42a32ab425cf4900ff6abc990b37ca03",
-      "bytes": 55385
+      "sha256": "0ad3be338dbe81ca2095819b708e01f8953ead40a1a8a95806d1b7ebe9b1674d",
+      "bytes": 59180
     },
     {
       "path": "scripts/test_catalog_method_progress_projection.py",
