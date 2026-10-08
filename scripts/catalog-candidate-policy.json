@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "ca585df281ca04490c70c6af8a12ac4c18dfbb650a526ee83655568e0a3970e2",
-  "capsuleSha256": "9104781aa198f8ef63c07becef37349ce5c8879145e869dc8c860e5434362e82",
+  "sourceManifestSha256": "083b27e8235346acea61993771cde873973ab6fd3ba43ede9d86b9fbd954d29c",
+  "capsuleSha256": "6d484de0611a5330a71828e085ae726a76fbc09346c382f4ade0a03c907c036d",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -11,8 +11,8 @@
   "sourceFiles": [
     {
       "path": ".github/workflows/_build-and-test.yml",
-      "sha256": "7982b50fa63aab011975d992510b7f4f929756869830db7a0245639934d2c6ae",
-      "bytes": 5621
+      "sha256": "339c86d0c61b18937a84951ed6e4add0ffbdd40841ec60e5b3536fe2abd2edd0",
+      "bytes": 5653
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
@@ -156,8 +156,8 @@
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
-      "sha256": "9cb1ef1bb8684ec7881b045ffefb1e350f4ad9549983f71cf2c7c216e7af949e",
-      "bytes": 63758
+      "sha256": "9f878479d4c65e525fcbc97c59bd702c990d9cc586dfd6f6c9a3d16cdafa5a63",
+      "bytes": 63884
     },
     {
       "path": "scripts/test_catalog_method_progress_projection.py",
