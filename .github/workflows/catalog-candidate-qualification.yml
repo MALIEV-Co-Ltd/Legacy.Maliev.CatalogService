@@ -5,6 +5,7 @@ on:
     paths:
       - scripts/materialize_catalog_candidate.py
       - scripts/tests/test_materialize_catalog_candidate.py
+      - scripts/tests/fixtures/catalog-v16-owned-supervisor.py.txt
       - scripts/catalog-candidate-policy.json
       - scripts/probe_catalog_controller.py
       - scripts/tests/test_catalog_controller.py
@@ -173,6 +174,7 @@ jobs:
             candidate/runner-results/owned-*/published-*.json
             candidate/runner-results/owned-*/absent-*.json
             candidate/runner-results/owned-*/container-*.json
+            candidate/runner-results/owned-*/inspect-*.json
           if-no-files-found: error
           retention-days: 7
           overwrite: false

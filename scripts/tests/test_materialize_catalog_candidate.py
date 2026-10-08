@@ -3,6 +3,10 @@ import copy
 import hashlib
 import importlib.util
 import json
+import fnmatch
+import runpy
+import contextlib
+import signal
 from pathlib import Path
 import tempfile
 import unittest
@@ -14,6 +18,64 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 class TransportControls(unittest.TestCase):
+    def test_inspect_producer_fixture_changes_trigger_transport_validation(self):
+        workflow = (SCRIPT.parents[1] / '.github/workflows/catalog-candidate-qualification.yml').read_text()
+        trigger = workflow.split('  pull_request:\n')[1].split('  workflow_dispatch:\n')[0]
+        fixture = '      - scripts/tests/fixtures/catalog-v16-owned-supervisor.py.txt'
+        self.assertEqual(1, trigger.splitlines().count(fixture))
+
+    def test_actual_inspect_writer_frames_are_retained_by_workflow_upload(self):
+        repository = SCRIPT.parents[1]
+        fixture = Path(__file__).with_name('fixtures') / 'catalog-v16-owned-supervisor.py.txt'
+        raw = fixture.read_bytes()
+        policy = json.loads((repository / 'scripts/catalog-candidate-policy.json').read_bytes())
+        row, = [item for item in policy['sourceFiles']
+                if item['path'] == 'scripts/run-catalog-owned-qualification.py']
+        self.assertEqual(row['bytes'], len(raw))
+        self.assertEqual(row['sha256'], hashlib.sha256(raw).hexdigest())
+        producer = runpy.run_path(str(fixture))
+        child = 'c' * 32
+        expected = {'Id': 'e' * 64, 'Created': '2026-10-08T00:00:01+00:00',
+                    'Image': 'sha256:' + 'f' * 64, 'Name': '/catalog-http-' + 'd' * 32,
+                    'labels': {'maliev.codex.owner': producer['OWNER']},
+                    'portBindings': {'5432/tcp': [{'HostIp': '127.0.0.1', 'HostPort': ''}]}}
+        value = {key: expected[key] for key in ('Id', 'Created', 'Image', 'Name')}
+        value.update(Config={'Labels': expected['labels'], 'Env': ['SYNTHETIC_PRIVATE_VALUE=must-not-export']},
+                     HostConfig={'Binds': [], 'Mounts': []}, State={'Running': True},
+                     Mounts=[{'Type': 'tmpfs', 'Destination': '/var/lib/postgresql'}],
+                     NetworkSettings={'Ports': {'5432/tcp': [{'HostIp': '127.0.0.1', 'HostPort': '45678'}]}})
+        workflow = (repository / '.github/workflows/catalog-candidate-qualification.yml').read_text()
+        block = workflow.split('      - name: Preserve raw test and bounded ownership evidence, never SDK private logs/cache\n')
+        self.assertEqual(2, len(block))
+        upload = block[1].split('          path: |\n')[1].split('          if-no-files-found:')[0]
+        patterns = [line.strip() for line in upload.splitlines() if line.strip()]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'candidate/runner-results/owned-focused-synthetic'
+            root.mkdir(parents=True)
+            # Windows substitutes only POSIX signal masking/directory fsync.
+            # Filename, projection and capture use the reviewed producer;
+            # hosted Linux exercises its durable writer unchanged.
+            def portable_write(path, observation):
+                with path.open('xb') as stream:
+                    stream.write((json.dumps(observation, sort_keys=True, separators=(',', ':')) + '\n').encode())
+            with contextlib.ExitStack() as stack:
+                if not hasattr(signal, 'pthread_sigmask'):
+                    stack.enter_context(patch.dict(producer['write_new'].__globals__,
+                        registration_window=contextlib.nullcontext, _write_new=portable_write))
+                for stage in ('initial', 'pre-mutation', 'stopped'):
+                    value['State']['Running'] = stage != 'stopped'
+                    self.assertEqual('captured', producer['capture_inspect_observation'](root, child, stage, value, expected))
+            frames = list(root.glob('*.json'))
+            self.assertEqual(3, len(frames))
+            for frame in frames:
+                relative = frame.relative_to(temporary).as_posix()
+                self.assertTrue(any(fnmatch.fnmatchcase(relative, pattern) for pattern in patterns), relative)
+                self.assertLessEqual(frame.stat().st_size, 8192)
+                self.assertNotIn('SYNTHETIC_PRIVATE_VALUE', frame.read_text())
+                self.assertFalse(frame.name.startswith('container-'))
+            private = 'candidate/runner-results/owned-focused-synthetic/private-sdk.log'
+            self.assertFalse(any(fnmatch.fnmatchcase(private, pattern) for pattern in patterns))
+
     def test_actual_workflow_routes_both_addresses_from_their_dispatch_inputs(self):
         workflow = (SCRIPT.parents[1] / '.github/workflows/catalog-candidate-qualification.yml').read_text()
         self.assertIn('MANIFEST_BLOB: ${{ inputs.manifest_blob }}', workflow)
