@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "090a1f4a187693d8dc64c112aec1b0fd76ed4f5b95a8229cae31c2aa9f4f82d9",
-  "capsuleSha256": "602faddec99ee48558618b75bc9c0afbb6a9412ad490cbeac6289cc6082b991e",
+  "sourceManifestSha256": "8c68aace93e21738e862f35891b77e074769fd818c62c91083ed58fa23c14244",
+  "capsuleSha256": "734d849da89a865ebe70aa925fc586c756066bdc4a7a9e9b968eb08ef11a9b06",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -41,7 +41,7 @@
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs",
-      "sha256": "ddb6481bf138d5b6e287f1c5a22060f27b458b54baf528bf6f8a8eeb194cfad6",
+      "sha256": "45120461ef895cc3a7ecd00300314c8a6373ac2a44a59a0be136c167da7ecbe4",
       "bytes": 13180
     },
     {
@@ -51,8 +51,8 @@
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetimeTests.cs",
-      "sha256": "1beaa6171cbd717cbf64115d6727b64ced92b9ebe52edd15a4e4fbf86f47fc83",
-      "bytes": 14019
+      "sha256": "6af08249463622988319f181d41cc68334fb48e5167524593886d3fcab6b19c3",
+      "bytes": 18844
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/AdditiveMaterialReconciliationStartupTests.cs",
@@ -96,8 +96,8 @@
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs",
-      "sha256": "577e3244790fdeefc9b87cfb9f949a804ed6990da267c87514c2cafaab3b1977",
-      "bytes": 12167
+      "sha256": "a408c157f8a11a022dafff5651f1920c9b0b8d96911e555ab2f2f90e290b17d0",
+      "bytes": 12416
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedisConnection.cs",
@@ -121,8 +121,8 @@
     },
     {
       "path": "docs/catalog-owned-qualification-source-20261008.md",
-      "sha256": "6e3ae222961e25eff50a05840be70f63362364fc244561b67a04c52094423911",
-      "bytes": 14378
+      "sha256": "93c8ec356b6aa8153a1b01c986c5b9a9dc929bc8de1bd3e9c57a3cd48508b8a3",
+      "bytes": 16288
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
