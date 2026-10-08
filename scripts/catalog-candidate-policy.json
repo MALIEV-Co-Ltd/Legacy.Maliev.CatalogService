@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "e8e3b552e52be7107b21622715484a1d8ccfdb1836de9047f90771b9e3eee349",
-  "capsuleSha256": "32462cfe079deb94ec25a855c0e9ea455090115dc935be5949046ec23d753542",
+  "sourceManifestSha256": "212ebef0291d3ae2a7d91e68db5ca0ece697d976d8cf34f9cf81958ccde67dd8",
+  "capsuleSha256": "b220094b0e5b29efd129f68dd91338bdf0948bc75e1798bf973720a3bd92b47c",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -26,7 +26,7 @@
     },
     {
       "path": "scripts/country-health-diagnostic-expected.json",
-      "sha256": "2eb6988d39c2128fa4797b6c550cdd150d93202a42001e8377ae08011052d693",
+      "sha256": "7f2c391317074a9ba6ea79c1d4f42662ead1c1bb16beea579eb75085e68ab428",
       "bytes": 2090
     },
     {
@@ -121,8 +121,8 @@
     },
     {
       "path": "docs/catalog-owned-qualification-source-20261008.md",
-      "sha256": "6ef3b1e30630302bd9cb4e2c88f67db0723dfa6c2b5a0c330f47aaa1f62fd228",
-      "bytes": 20550
+      "sha256": "b9679e03128a94efa9fca1f884f8a2dbbcc5ed1bf83ce72c7c17f0fdc0191b78",
+      "bytes": 21907
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
@@ -138,6 +138,11 @@
       "path": "scripts/catalog-ordinary-controller-seal.json",
       "sha256": "e558c63981e4815cd456ac51023b146437c5fb132d2a4a33219731cfc2af8a7b",
       "bytes": 185
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Lookups/ThaiAddressLookupTests.cs",
+      "sha256": "c376c9b5e0b85a4ebdd1cfd249b7c570c7bc71c156623925e1f05a64c428b3ab",
+      "bytes": 12518
     }
   ]
 }
