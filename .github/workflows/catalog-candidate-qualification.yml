@@ -8,6 +8,7 @@ on:
       - scripts/tests/fixtures/catalog-v16-owned-supervisor.py.txt
       - scripts/catalog-candidate-policy.json
       - scripts/probe_catalog_controller.py
+      - scripts/catalog-ordinary-controller-seal.json
       - scripts/tests/test_catalog_controller.py
       - scripts/run_catalog_build_grant.py
       - scripts/tests/test_catalog_build_grant.py
