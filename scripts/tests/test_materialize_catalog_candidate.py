@@ -14,6 +14,32 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 class TransportControls(unittest.TestCase):
+    def test_actual_workflow_routes_both_addresses_from_their_dispatch_inputs(self):
+        workflow = (SCRIPT.parents[1] / '.github/workflows/catalog-candidate-qualification.yml').read_text()
+        self.assertIn('MANIFEST_BLOB: ${{ inputs.manifest_blob }}', workflow)
+        self.assertIn('CAPSULE_BLOB: ${{ inputs.capsule_blob }}', workflow)
+        self.assertIn('--manifest-blob "$MANIFEST_BLOB" --capsule-blob "$CAPSULE_BLOB"', workflow)
+
+    def test_actual_cli_fetches_and_validates_both_supplied_blob_addresses(self):
+        import os
+        import sys
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); (root/'scripts').mkdir(); (root/'candidate').mkdir()
+            (root/'scripts/catalog-candidate-policy.json').write_text(json.dumps(self.policy))
+            manifest_blob, capsule_blob = '1'*40, '2'*40
+            head = 'cc5280b94959b8f6cfc924ff83357274cd65103b'
+            argv = ['materializer', '--manifest-blob', manifest_blob, '--capsule-blob', capsule_blob]
+            def fetch(blob):
+                return {manifest_blob: self.manifest, capsule_blob: self.raw}[blob]
+            with patch.object(module, '__file__', str(root/'scripts/materialize_catalog_candidate.py')), patch.object(sys, 'argv', argv), patch.dict(os.environ, GITHUB_REPOSITORY=module.REPOSITORY, GITHUB_SHA=head), patch.object(module, 'git', return_value=head.encode()), patch.object(module, 'fetch', side_effect=fetch) as fetched, patch.object(module, 'materialize') as materialized:
+                module.main()
+                self.assertEqual([manifest_blob, capsule_blob], [call.args[0] for call in fetched.call_args_list])
+                self.assertEqual(24, len(materialized.call_args.args[2]))
+            receipt = json.loads((root/'evidence/source-materialization.json').read_text())
+            self.assertEqual(manifest_blob, receipt['manifestBlob'])
+            self.assertEqual(capsule_blob, receipt['capsuleBlob'])
+            self.assertFalse(receipt['nativeValidated'])
+
     def setUp(self):
         self.manifest = b'reviewed synthetic manifest'
         self.files = [{'path': f'source/{number}.cs', 'content': 'literal\r\n'} for number in range(24)]
@@ -98,20 +124,20 @@ class TransportControls(unittest.TestCase):
         policy['sourcePins'][next(iter(policy['sourcePins']))] = '0' * 40
         with self.assertRaisesRegex(ValueError, 'dependency pins'):
             self.validate(policy=policy)
-    def test_committed_policy_is_exact_catalog_v12_inventory(self):
+    def test_committed_policy_is_exact_catalog_v16_inventory(self):
         policy = module.parse((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes())
         self.assertEqual(module.REPOSITORY, policy['repository'])
         self.assertEqual(module.BASE, policy['acceptedBase'])
         self.assertEqual(module.SOURCE_PINS, policy['sourcePins'])
         self.assertEqual(24, len(policy['sourceFiles']))
         self.assertEqual(24, len({row['path'] for row in policy['sourceFiles']}))
-        self.assertEqual('c21b425f805b54ee23055249794dfa7213af11460582321c66313c3cff43a490', policy['sourceManifestSha256'])
-        self.assertEqual('cd1861c8b3c570294075f2e6c87d135987209db97732c86acc80212d7cfbc65e', policy['capsuleSha256'])
+        self.assertEqual('090a1f4a187693d8dc64c112aec1b0fd76ed4f5b95a8229cae31c2aa9f4f82d9', policy['sourceManifestSha256'])
+        self.assertEqual('602faddec99ee48558618b75bc9c0afbb6a9412ad490cbeac6289cc6082b991e', policy['capsuleSha256'])
         rows = {row['path']: row for row in policy['sourceFiles']}
         for path, size, sha in (
-            ('scripts/run-catalog-owned-qualification.py', 48031, '2bedc53e0e6133070be84331761f3b756947ddaa9128098a6c1bfad8d846b851'),
-            ('scripts/test-catalog-owned-qualification.py', 34478, '7b9918cd1b9e8b273a8edc43b66a13c04c3d8a0b6cc5ecf87af880c00559371e'),
-            ('docs/catalog-owned-qualification-source-20261008.md', 11696, '4436de61da78ea467cbe299d358aa7c717195a604244dcb2150ecbe38983fa3c'),
+            ('scripts/run-catalog-owned-qualification.py', 50768, '016e0a839a6f1bf7ed182841d8ea12455e4b9bee9603bf3d56c2abfacfcee03f'),
+            ('scripts/test-catalog-owned-qualification.py', 42977, '309a2d9f38f53455798a6e2680e7af6146f70e8a3f2bda3a7f80192c47812181'),
+            ('docs/catalog-owned-qualification-source-20261008.md', 14378, '6e3ae222961e25eff50a05840be70f63362364fc244561b67a04c52094423911'),
             ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs', 13180, 'ddb6481bf138d5b6e287f1c5a22060f27b458b54baf528bf6f8a8eeb194cfad6'),
             ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs', 12167, '577e3244790fdeefc9b87cfb9f949a804ed6990da267c87514c2cafaab3b1977')):
             self.assertEqual(size, rows[path]['bytes'])
