@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "8c68aace93e21738e862f35891b77e074769fd818c62c91083ed58fa23c14244",
-  "capsuleSha256": "734d849da89a865ebe70aa925fc586c756066bdc4a7a9e9b968eb08ef11a9b06",
+  "sourceManifestSha256": "e8e3b552e52be7107b21622715484a1d8ccfdb1836de9047f90771b9e3eee349",
+  "capsuleSha256": "32462cfe079deb94ec25a855c0e9ea455090115dc935be5949046ec23d753542",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -11,8 +11,8 @@
   "sourceFiles": [
     {
       "path": ".github/workflows/_build-and-test.yml",
-      "sha256": "718b37aabd5f88aff28e1df16e5bbd07f87a204bc788851ee18d81c464ce15ed",
-      "bytes": 2255
+      "sha256": "7982b50fa63aab011975d992510b7f4f929756869830db7a0245639934d2c6ae",
+      "bytes": 5621
     },
     {
       "path": "Legacy.Maliev.CatalogService.Application/Models/CatalogModels.cs",
@@ -111,23 +111,33 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "sha256": "016e0a839a6f1bf7ed182841d8ea12455e4b9bee9603bf3d56c2abfacfcee03f",
-      "bytes": 50768
+      "sha256": "85082f82ea9aaf228290dca28d852202fee2348b76c1883ab5d7cbb00726e283",
+      "bytes": 54830
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
-      "sha256": "309a2d9f38f53455798a6e2680e7af6146f70e8a3f2bda3a7f80192c47812181",
-      "bytes": 42977
+      "sha256": "44461c0b0a7f7b84854266431a507cdc590d67a5f06fc897995edb0d1052fc9a",
+      "bytes": 54398
     },
     {
       "path": "docs/catalog-owned-qualification-source-20261008.md",
-      "sha256": "93c8ec356b6aa8153a1b01c986c5b9a9dc929bc8de1bd3e9c57a3cd48508b8a3",
-      "bytes": 16288
+      "sha256": "6ef3b1e30630302bd9cb4e2c88f67db0723dfa6c2b5a0c330f47aaa1f62fd228",
+      "bytes": 20550
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
       "sha256": "616d1eca0195bef1a35a5aafc9f5d77e5f2b233bf2627f1630e34b41a5dce4bb",
       "bytes": 2925
+    },
+    {
+      "path": "scripts/probe_catalog_controller.py",
+      "sha256": "bfa2ea6082912f270c8a6bc208923c5750fa81ec2be8232305fdb0035d3abe85",
+      "bytes": 18135
+    },
+    {
+      "path": "scripts/catalog-ordinary-controller-seal.json",
+      "sha256": "e558c63981e4815cd456ac51023b146437c5fb132d2a4a33219731cfc2af8a7b",
+      "bytes": 185
     }
   ]
 }

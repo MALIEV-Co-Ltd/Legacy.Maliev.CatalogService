@@ -244,6 +244,67 @@ def drop_child_identity(uid, gid, groups, os_api=os, libc=None):
         raise RuntimeError('SDK privilege drop did not take effect')
     os_api.umask(0o077)
 
+def project_test_progress(raw, run, phase, failure_category):
+    """Optional partial console evidence: no arguments, messages, paths or suite claims."""
+    if len(raw) > LIMIT or not re.fullmatch(r'[0-9a-f]{32}', run) or phase not in {'focused', 'full'}:
+        raise ValueError('Unreviewed test progress input')
+    if failure_category not in {'none', 'TimeoutError', 'RuntimeError', 'OSError', 'KeyboardInterrupt', 'other'}:
+        raise ValueError('Unreviewed failure category')
+    stages = {
+        'testRunAnnounced': bool(re.search(rb'(?m)^Test run for ', raw)),
+        'vstestAnnounced': bool(re.search(rb'(?m)^VSTest version [0-9.]', raw)),
+        'executionAnnounced': bool(re.search(rb'(?m)^Starting test execution, please wait\.\r?$', raw)),
+        'assemblyMatched': bool(re.search(rb'(?m)^A total of [0-9]+ test files matched the specified pattern\.\r?$', raw)),
+        'xunitStarting': bool(re.search(rb'(?m)^\[xUnit\.net [0-9:.]+\]\s+Starting:\s+Legacy\.Maliev\.CatalogService\.Tests\r?$', raw)),
+    }
+    count, truncated, recent = 0, False, []
+    pattern = rb'(?m)^[ \t]*(Passed|Failed|Skipped) (Legacy\.Maliev\.CatalogService\.Tests\.[A-Za-z_][A-Za-z0-9_.+]{0,200})(?=[ (\r\n]|$)'
+    for match in re.finditer(pattern, raw):
+        truncated |= count == 4096
+        count = min(count + 1, 4096)
+        recent.append({'outcome': match[1].decode('ascii'), 'method': match[2].decode('ascii')})
+        del recent[:-16]
+    first_started, last_started, started_count = None, None, 0
+    started_pattern = rb'(?m)^[ \t]*(?:\[xUnit\.net [0-9:.]+\][ \t]+)?\[START\][ \t]+(Legacy\.Maliev\.CatalogService\.Tests\.[A-Za-z_][A-Za-z0-9_.+]{0,200})(?=[ (\r\n]|$)'
+    for match in re.finditer(started_pattern, raw):
+        last_started = match[1].decode('ascii')
+        first_started = first_started or last_started
+        started_count = min(started_count + 1, 4096)
+    value = {'schemaVersion': 1, 'sdkRun': run, 'phase': phase,
+             'diagnosticAvailability': 'available', 'partialOnly': True,
+             'failureCategory': failure_category, 'stages': stages,
+             'completedConsoleResultLines': count, 'resultLineCountTruncated': truncated,
+             'recentCompletedMethods': recent, 'startedConsoleResultLines': started_count,
+             'firstStartedMethod': first_started, 'lastStartedMethod': last_started,
+             'fullTestCountsEstablished': False}
+    if len(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()) + 1 > 8192:
+        raise ValueError('Test progress frame exceeds its bound')
+    return value
+
+def capture_test_progress(root, run, phase, first_failure):
+    """One optional frame, after mandatory physical cleanup; never replaces the outcome."""
+    if phase not in {'focused', 'full'}:
+        return
+    path = root / 'results' / 'test-progress.json'
+    try:
+        if path.exists():
+            return
+        category = type(first_failure).__name__ if first_failure is not None else 'none'
+        if category not in {'none', 'TimeoutError', 'RuntimeError', 'OSError', 'KeyboardInterrupt'}:
+            category = 'other'
+        try:
+            stdout = root / 'sdk.log'
+            if stdout.is_symlink():
+                raise ValueError('Unreviewed progress source')
+            value = project_test_progress(bounded_bytes(stdout, LIMIT), run, phase, category)
+        except (OSError, ValueError):
+            value = {'schemaVersion': 1, 'sdkRun': run, 'phase': phase,
+                     'diagnosticAvailability': 'unavailable', 'partialOnly': True,
+                     'failureCategory': category, 'fullTestCountsEstablished': False}
+        write_new(path, value)
+    except (OSError, ValueError):
+        pass  # Optional evidence cannot turn a phase failure or physical release into success.
+
 def write_new(path, value):
     with registration_window():
         _write_new(path, value)
@@ -576,7 +637,8 @@ def run_owned_phase():
                     'FullyQualifiedName~CatalogHttpLifecycleTests|FullyQualifiedName~CatalogResourceLifetimeTests',
                     '--logger', 'trx;LogFileName=catalog-focused.trx', '--results-directory', str(root / 'results')],
         'full': ['test', project, '-c', 'Release', '--no-build', '--no-restore', '--logger',
-                 'trx;LogFileName=catalog-full.trx', '--results-directory', str(root / 'results'), '--collect', 'XPlat Code Coverage'],
+                 'trx;LogFileName=catalog-full.trx', '--logger', 'console;verbosity=detailed',
+                 '--results-directory', str(root / 'results'), '--collect', 'XPlat Code Coverage'],
         'format': ['format', 'Legacy.Maliev.CatalogService.slnx', '--verify-no-changes', '--no-restore'],
         'audit': ['list', 'Legacy.Maliev.CatalogService.slnx', 'package', '--vulnerable', '--include-transitive', '--no-restore',
                   '--format', 'json', '--output-version', '1', '--source', 'https://api.nuget.org/v3/index.json']}
@@ -906,6 +968,11 @@ def run_owned_phase():
                 first_failure = failure
         # Private while running; return only this run's evidence to the original
         # hosted checkout owner after physical cleanup and exact claim release.
+        try:
+            capture_test_progress(root, run, phase, first_failure)
+        except BaseException as failure:
+            if first_failure is None:
+                first_failure = failure
         try:
             for directory, directories, files in os.walk(root, followlinks=False):
                 paths = [Path(directory), *[Path(directory) / item for item in directories + files]]
