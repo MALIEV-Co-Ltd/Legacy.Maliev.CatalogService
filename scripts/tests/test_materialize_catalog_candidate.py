@@ -186,22 +186,23 @@ class TransportControls(unittest.TestCase):
         policy['sourcePins'][next(iter(policy['sourcePins']))] = '0' * 40
         with self.assertRaisesRegex(ValueError, 'dependency pins'):
             self.validate(policy=policy)
-    def test_committed_policy_is_exact_catalog_v16_inventory(self):
+    def test_committed_policy_is_exact_catalog_v17_inventory(self):
         policy = module.parse((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes())
         self.assertEqual(module.REPOSITORY, policy['repository'])
         self.assertEqual(module.BASE, policy['acceptedBase'])
         self.assertEqual(module.SOURCE_PINS, policy['sourcePins'])
         self.assertEqual(24, len(policy['sourceFiles']))
         self.assertEqual(24, len({row['path'] for row in policy['sourceFiles']}))
-        self.assertEqual('090a1f4a187693d8dc64c112aec1b0fd76ed4f5b95a8229cae31c2aa9f4f82d9', policy['sourceManifestSha256'])
-        self.assertEqual('602faddec99ee48558618b75bc9c0afbb6a9412ad490cbeac6289cc6082b991e', policy['capsuleSha256'])
+        self.assertEqual('8c68aace93e21738e862f35891b77e074769fd818c62c91083ed58fa23c14244', policy['sourceManifestSha256'])
+        self.assertEqual('734d849da89a865ebe70aa925fc586c756066bdc4a7a9e9b968eb08ef11a9b06', policy['capsuleSha256'])
         rows = {row['path']: row for row in policy['sourceFiles']}
         for path, size, sha in (
             ('scripts/run-catalog-owned-qualification.py', 50768, '016e0a839a6f1bf7ed182841d8ea12455e4b9bee9603bf3d56c2abfacfcee03f'),
             ('scripts/test-catalog-owned-qualification.py', 42977, '309a2d9f38f53455798a6e2680e7af6146f70e8a3f2bda3a7f80192c47812181'),
-            ('docs/catalog-owned-qualification-source-20261008.md', 14378, '6e3ae222961e25eff50a05840be70f63362364fc244561b67a04c52094423911'),
-            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs', 13180, 'ddb6481bf138d5b6e287f1c5a22060f27b458b54baf528bf6f8a8eeb194cfad6'),
-            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs', 12167, '577e3244790fdeefc9b87cfb9f949a804ed6990da267c87514c2cafaab3b1977')):
+            ('docs/catalog-owned-qualification-source-20261008.md', 16288, '93c8ec356b6aa8153a1b01c986c5b9a9dc929bc8de1bd3e9c57a3cd48508b8a3'),
+            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs', 13180, '45120461ef895cc3a7ecd00300314c8a6373ac2a44a59a0be136c167da7ecbe4'),
+            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetimeTests.cs', 18844, '6af08249463622988319f181d41cc68334fb48e5167524593886d3fcab6b19c3'),
+            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs', 12416, 'a408c157f8a11a022dafff5651f1920c9b0b8d96911e555ab2f2f90e290b17d0')):
             self.assertEqual(size, rows[path]['bytes'])
             self.assertEqual(sha, rows[path]['sha256'])
     def test_workflow_keeps_pr_pure_and_native_main_only(self):
