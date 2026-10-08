@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "1163b9f2f22bf3cec518bf74b540524efe1a514fa61efafe56bd5d04d04d2376",
-  "capsuleSha256": "498cc3d359690a9d1b8711808e0c1b900174311f29dcd58e690d265ccf8b07ca",
+  "sourceManifestSha256": "c21b425f805b54ee23055249794dfa7213af11460582321c66313c3cff43a490",
+  "capsuleSha256": "cd1861c8b3c570294075f2e6c87d135987209db97732c86acc80212d7cfbc65e",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -41,8 +41,8 @@
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs",
-      "sha256": "a88215463abda2c476d5d13e544317067e024573fc0e806a7ce20b5a45c3ab6a",
-      "bytes": 13101
+      "sha256": "ddb6481bf138d5b6e287f1c5a22060f27b458b54baf528bf6f8a8eeb194cfad6",
+      "bytes": 13180
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetime.cs",
@@ -116,13 +116,13 @@
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
-      "sha256": "34352467bc18184247608927c1749fc47e83a430707e1d984acd77c441130363",
-      "bytes": 32714
+      "sha256": "7b9918cd1b9e8b273a8edc43b66a13c04c3d8a0b6cc5ecf87af880c00559371e",
+      "bytes": 34478
     },
     {
       "path": "docs/catalog-owned-qualification-source-20261008.md",
-      "sha256": "09330c3562ea6d2029550594fb863d99c2cff425cba83f227b772a7bf196936f",
-      "bytes": 9784
+      "sha256": "4436de61da78ea467cbe299d358aa7c717195a604244dcb2150ecbe38983fa3c",
+      "bytes": 11696
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
