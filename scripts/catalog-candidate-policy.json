@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "9411aecda61f3b73f1e41c93d8e2950da113f609b59ae93466e1ca3590d77971",
-  "capsuleSha256": "37af7a26e45e89b7dcb0f7baed32cb29a48ced366e5635a527be2aefae84d702",
+  "sourceManifestSha256": "c598e154eac9fd95c2085deef6b00c5edc2a4218862a5e6bf4e8e962829743d7",
+  "capsuleSha256": "ef221b37e54a8f013609b4b042b229a5ca46215b27967b0d97723b8d2ee890ab",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -21,8 +21,8 @@
     },
     {
       "path": "docs/catalog-owned-qualification-source-20261008.md",
-      "sha256": "343a1ee0b088d0318e9bed873f60b0a9a88a3fecb678e7e1468e05303d5a9c3b",
-      "bytes": 24991
+      "sha256": "2d50e339a287e6047f3d77a0548770f4c4b4f268edd4693501b0017b33454b26",
+      "bytes": 25321
     },
     {
       "path": "docs/material-group-literal-name-source-parity-20261008.md",
@@ -126,7 +126,7 @@
     },
     {
       "path": "scripts/catalog-ordinary-controller-seal.json",
-      "sha256": "1c83242503a266370af705998cdf468bafa66e72dbf0d2de9d890f090b781a44",
+      "sha256": "5261671f3c2149ee09fb69c2b677a99522d803fcf8c598ab7b4c8b672113899a",
       "bytes": 179
     },
     {
@@ -151,8 +151,8 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "sha256": "3353903fdabe094d3fa1a94218a9be243e49b3b6e19add63f0003791dc1bcd53",
-      "bytes": 59387
+      "sha256": "8e6beead800999c13c5200ee0f5695f6798a3eff6f2694e03555994c872f859e",
+      "bytes": 59733
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
@@ -166,8 +166,8 @@
     },
     {
       "path": "scripts/test_catalog_platform_progress_projection.py",
-      "sha256": "f9bd28568c51904ecda2e766b8484c0fb81bee3c88575f94770fcb9ed1184710",
-      "bytes": 13908
+      "sha256": "1b3112bbd9ce3d17aa860a98a32da752e38cf4a63eadbe6f7136ba68f0d5024a",
+      "bytes": 15418
     }
   ]
 }
