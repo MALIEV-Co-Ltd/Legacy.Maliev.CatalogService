@@ -130,7 +130,7 @@ class TransportControls(unittest.TestCase):
             with patch.object(module, '__file__', str(root/'scripts/materialize_catalog_candidate.py')), patch.object(sys, 'argv', argv), patch.dict(os.environ, GITHUB_REPOSITORY=module.REPOSITORY, GITHUB_SHA=head), patch.object(module, 'git', return_value=head.encode()), patch.object(module, 'fetch', side_effect=fetch) as fetched, patch.object(module, 'materialize') as materialized:
                 module.main()
                 self.assertEqual([manifest_blob, capsule_blob], [call.args[0] for call in fetched.call_args_list])
-                self.assertEqual(26, len(materialized.call_args.args[2]))
+                self.assertEqual(27, len(materialized.call_args.args[2]))
             receipt = json.loads((root/'evidence/source-materialization.json').read_text())
             self.assertEqual(manifest_blob, receipt['manifestBlob'])
             self.assertEqual(capsule_blob, receipt['capsuleBlob'])
@@ -138,7 +138,7 @@ class TransportControls(unittest.TestCase):
 
     def setUp(self):
         self.manifest = b'reviewed synthetic manifest'
-        self.files = [{'path': f'source/{number}.cs', 'content': 'literal\r\n'} for number in range(26)]
+        self.files = [{'path': f'source/{number}.cs', 'content': 'literal\r\n'} for number in range(27)]
         self.capsule = {'schemaVersion': 1, 'repository': module.REPOSITORY, 'acceptedBase': module.BASE, 'sourceFiles': self.files}
         self.raw = json.dumps(self.capsule).encode()
         self.policy = {'schemaVersion': 1, 'repository': module.REPOSITORY, 'acceptedBase': module.BASE,
@@ -154,7 +154,7 @@ class TransportControls(unittest.TestCase):
         return module.validate(raw, self.manifest, policy)
     def test_exact26_preserves_crlf(self):
         result = self.validate()
-        self.assertEqual(26, len(result))
+        self.assertEqual(27, len(result))
         self.assertEqual(b'literal\r\n', result['source/0.cs'])
     def test_foreign_repository_base_schema_rejected(self):
         for key, value in [('repository', 'foreign/repo'), ('acceptedBase', '0' * 40), ('schemaVersion', True)]:
@@ -220,20 +220,21 @@ class TransportControls(unittest.TestCase):
         policy['sourcePins'][next(iter(policy['sourcePins']))] = '0' * 40
         with self.assertRaisesRegex(ValueError, 'dependency pins'):
             self.validate(policy=policy)
-    def test_committed_policy_is_exact_catalog_v19_inventory(self):
+    def test_committed_policy_is_exact_catalog_v20_inventory(self):
         policy = module.parse((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes())
         self.assertEqual(module.REPOSITORY, policy['repository'])
         self.assertEqual(module.BASE, policy['acceptedBase'])
         self.assertEqual(module.SOURCE_PINS, policy['sourcePins'])
-        self.assertEqual(26, len(policy['sourceFiles']))
-        self.assertEqual(26, len({row['path'] for row in policy['sourceFiles']}))
-        self.assertEqual('e8e3b552e52be7107b21622715484a1d8ccfdb1836de9047f90771b9e3eee349', policy['sourceManifestSha256'])
-        self.assertEqual('32462cfe079deb94ec25a855c0e9ea455090115dc935be5949046ec23d753542', policy['capsuleSha256'])
+        self.assertEqual(27, len(policy['sourceFiles']))
+        self.assertEqual(27, len({row['path'] for row in policy['sourceFiles']}))
+        self.assertEqual('212ebef0291d3ae2a7d91e68db5ca0ece697d976d8cf34f9cf81958ccde67dd8', policy['sourceManifestSha256'])
+        self.assertEqual('b220094b0e5b29efd129f68dd91338bdf0948bc75e1798bf973720a3bd92b47c', policy['capsuleSha256'])
         rows = {row['path']: row for row in policy['sourceFiles']}
         for path, size, sha in (
+            ('Legacy.Maliev.CatalogService.Tests/Lookups/ThaiAddressLookupTests.cs', 12518, 'c376c9b5e0b85a4ebdd1cfd249b7c570c7bc71c156623925e1f05a64c428b3ab'),
             ('scripts/run-catalog-owned-qualification.py', 54830, '85082f82ea9aaf228290dca28d852202fee2348b76c1883ab5d7cbb00726e283'),
             ('scripts/test-catalog-owned-qualification.py', 54398, '44461c0b0a7f7b84854266431a507cdc590d67a5f06fc897995edb0d1052fc9a'),
-            ('docs/catalog-owned-qualification-source-20261008.md', 20550, '6ef3b1e30630302bd9cb4e2c88f67db0723dfa6c2b5a0c330f47aaa1f62fd228'),
+            ('docs/catalog-owned-qualification-source-20261008.md', 21907, 'b9679e03128a94efa9fca1f884f8a2dbbcc5ed1bf83ce72c7c17f0fdc0191b78'),
             ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs', 13180, '45120461ef895cc3a7ecd00300314c8a6373ac2a44a59a0be136c167da7ecbe4'),
             ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetimeTests.cs', 18844, '6af08249463622988319f181d41cc68334fb48e5167524593886d3fcab6b19c3'),
             ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs', 12416, 'a408c157f8a11a022dafff5651f1920c9b0b8d96911e555ab2f2f90e290b17d0')):
