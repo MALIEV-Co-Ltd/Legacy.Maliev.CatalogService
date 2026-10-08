@@ -1,0 +1,940 @@
+#!/usr/bin/env python3
+"""Source-only until reviewed: root/delegated Linux cgroup-v2 finite Catalog lane.
+
+No global process cleanup, container pruning, persistent volume deletion or token
+handling. Unresolved cleanup retains the exact group, claim and durable evidence.
+"""
+import datetime as dt
+from contextlib import contextmanager
+import hashlib
+import http.client
+import json
+import os
+import re
+from pathlib import Path
+import select
+import signal
+import socket
+import sys
+import time
+import uuid
+import xml.etree.ElementTree as ET
+from urllib.parse import quote
+
+OWNER = 'catalog-materialgroup-http-20261008'
+LIMIT = 32 * 1024 * 1024
+SDK_SECONDS = 600
+CGROUP_ROOT = Path('/sys/fs/cgroup')
+SOCKET_IDENTITY = None
+RPC_DEADLINE = None
+PROJECT_PATHS = {f'Legacy.Maliev.CatalogService.{name}/Legacy.Maliev.CatalogService.{name}.csproj'
+                 for name in ('Api', 'Application', 'Data', 'Domain', 'Tests')}
+
+@contextmanager
+def registration_window():
+    """Defer handled cancellation only until a syscall result has an owner."""
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+    try:
+        yield previous
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
+def guard_child_parent(parent, previous_mask, libc=None):
+    import ctypes
+    libc = libc if libc is not None else ctypes.CDLL(None, use_last_error=True)
+    libc.prctl.argtypes = [ctypes.c_int, *([ctypes.c_ulong] * 4)]
+    libc.prctl.restype = ctypes.c_int
+    # setuid clears PDEATHSIG, so establish it after dropping privileges.
+    if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0 or os.getppid() != parent:
+        raise RuntimeError('Child parent-death ownership guard unavailable')
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+
+def unique_json(raw):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError('Duplicate evidence key')
+            result[key] = value
+        return result
+    return json.loads(raw, object_pairs_hook=pairs)
+
+def bounded_bytes(path, maximum):
+    with path.open('rb') as stream:
+        raw = stream.read(maximum + 1)
+    if len(raw) > maximum:
+        raise RuntimeError('Evidence file exceeds quota')
+    return raw
+
+def project_build_diagnostics(stdout, stderr, repository):
+    """Only known codes and existing Catalog source coordinates; never messages."""
+    if len(stdout) + len(stderr) > LIMIT:
+        raise RuntimeError('Build projection exceeds original aggregate quota')
+    repository = repository.resolve(strict=True)
+    text = (stdout + b'\n' + stderr).decode('utf-8', errors='replace')
+    pattern = re.compile(r'^(.+?)(?:\((\d{1,7})(?:,(\d{1,7}))?\))?\s*:\s*(error|warning)\s+((?:CS|NU|MSB)\d{4})\s*:', re.M)
+    diagnostics = []
+    omitted = 0
+    encountered = 0
+    for match in pattern.finditer(text):
+        encountered += 1
+        raw_path, line, column, severity, code = match.groups()
+        raw_path = raw_path.strip().replace('\\', '/')
+        prefix = repository.as_posix().rstrip('/') + '/'
+        if raw_path.startswith(prefix):
+            raw_path = raw_path[len(prefix):]
+        parts = raw_path.split('/')
+        if (len(raw_path) > 512 or not re.fullmatch(r'[A-Za-z0-9_./-]+', raw_path)
+                or any(part in ('', '.', '..') for part in parts)
+                or parts[0] not in {Path(path).parts[0] for path in PROJECT_PATHS}
+                or Path(raw_path).suffix not in {'.cs', '.csproj'}):
+            continue
+        path = repository.joinpath(*parts)
+        if any(repository.joinpath(*parts[:index]).is_symlink() for index in range(1, len(parts) + 1)):
+            continue
+        if not path.is_file() or repository not in path.resolve().parents:
+            continue
+        row = {'category': {'CS': 'compiler', 'NU': 'restore', 'MSB': 'msbuild'}[re.match(r'[A-Z]+', code).group()],
+               'severity': severity, 'code': code, 'file': raw_path,
+               'line': int(line) if line else None, 'column': int(column) if column else None}
+        if len(diagnostics) < 64:
+            diagnostics.append(row)
+        else:
+            omitted += 1
+    def counter(name):
+        values = re.findall(r'^\s*(\d{1,7}) ' + name + r'\(s\)\s*$', text, re.M)
+        return int(values[0]) if len(values) == 1 else None
+    warnings, errors = counter('Warning'), counter('Error')
+    availability = 'available' if diagnostics else ('none' if warnings == errors == 0 and encountered == 0 else 'unavailable')
+    return {'diagnostics': diagnostics, 'omittedDiagnostics': omitted,
+            'diagnosticAvailability': availability, 'warnings': warnings, 'errors': errors,
+            'privacy': 'Known code/category and validated Catalog source coordinates only; messages omitted'}
+
+def released_primitive_receipt(run, group, slot):
+    for path in (group, slot):
+        try:
+            os.lstat(path)
+        except FileNotFoundError:
+            continue
+        raise RuntimeError('Released ownership pathname still exists')
+    return {'run': run, 'sdkExited': True, 'ownedBackendsAbsent': True,
+            'handlesReleased': True, 'slotReleased': True, 'slotAbsent': True, 'cgroupAbsent': True}
+
+def restored_audit_identity(repository):
+    solution = repository / 'Legacy.Maliev.CatalogService.slnx'
+    raw = bounded_bytes(solution, 65536)
+    if len(raw) > 65536 or b'<!' in raw:
+        raise RuntimeError('Invalid bounded solution inventory')
+    projects = ET.fromstring(raw).findall('Project')
+    if len(projects) != 5 or {node.attrib.get('Path') for node in projects} != PROJECT_PATHS:
+        raise RuntimeError('Exact five-project Catalog solution is required')
+    expected = {}
+    for node in projects:
+        project = (repository / node.attrib['Path']).resolve(strict=True)
+        if repository.resolve() not in project.parents or project in expected:
+            raise RuntimeError('Foreign or duplicate solution project')
+        asset_path = project.parent / 'obj' / 'project.assets.json'
+        blob = bounded_bytes(asset_path, 16 * 1024 * 1024)
+        if len(blob) > 16 * 1024 * 1024:
+            raise RuntimeError('Restore identity exceeds quota')
+        assets = unique_json(blob)
+        restore = assets['project']['restore']
+        if Path(restore['projectPath']).resolve() != project or restore['projectStyle'] != 'PackageReference':
+            raise RuntimeError('Restore project identity differs')
+        frameworks = set(restore['originalTargetFrameworks'])
+        if frameworks != {'net10.0'} or set(assets['project']['frameworks']) != frameworks:
+            raise RuntimeError('Restored framework identity differs')
+        if set(assets['targets']) != frameworks:
+            raise RuntimeError('Restored targets are incomplete or foreign')
+        sources = set(restore['sources'])
+        if sources != {'https://api.nuget.org/v3/index.json'}:
+            raise RuntimeError('Unknown restored audit source')
+        packages = {tuple(key.rsplit('/', 1)) for key, value in assets['libraries'].items() if value['type'] == 'package'}
+        expected[project] = {'frameworks': frameworks, 'packages': packages, 'assets': asset_path,
+                             'sha256': hashlib.sha256(blob).hexdigest()}
+    return expected
+
+def verify_audit(stdout, stderr, expected):
+    if stderr:
+        raise RuntimeError('Audit stderr is unavailable/failed evidence')
+    report = unique_json(stdout)
+    if not isinstance(report, dict):
+        raise RuntimeError('Malformed audit report object')
+    if type(report.get('version')) is not int or report['version'] != 1:
+        raise RuntimeError('Require audit JSON version 1')
+    if not set(report) <= {'version', 'parameters', 'sources', 'projects', 'errors', 'warnings', 'problems', 'messages'}:
+        raise RuntimeError('Unknown audit report schema')
+    if not isinstance(report.get('parameters'), str) or not {'--vulnerable', '--include-transitive'} <= set(report['parameters'].split()):
+        raise RuntimeError('Audit report mode differs')
+    if report.get('sources') != ['https://api.nuget.org/v3/index.json']:
+        raise RuntimeError('Audit source unavailable or foreign')
+    def refuse(value):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key.lower() in {'error', 'errors', 'warning', 'warnings', 'problem', 'problems', 'messages', 'unavailable', 'vulnerabilities'}:
+                    if not isinstance(child, list):
+                        raise RuntimeError('Malformed audit diagnostic collection')
+                    if child:
+                        raise RuntimeError('Audit error, unavailable feed or vulnerability found')
+                if key.lower() == 'code' and isinstance(child, str) and child.startswith('NU190'):
+                    raise RuntimeError('Audit feed or vulnerability warning found')
+                refuse(child)
+        elif isinstance(value, list):
+            for child in value:
+                refuse(child)
+    refuse(report)
+    projects = report.get('projects')
+    if not isinstance(projects, list) or len(projects) != len(expected):
+        raise RuntimeError('Audit solution inventory incomplete')
+    seen = set()
+    for project in projects:
+        if not isinstance(project, dict):
+            raise RuntimeError('Malformed audit project object')
+        if not set(project) <= {'path', 'frameworks', 'errors', 'warnings', 'problems', 'messages'}:
+            raise RuntimeError('Unknown audit project schema')
+        path = Path(project['path']).resolve()
+        if path not in expected or path in seen:
+            raise RuntimeError('Audit project is foreign or duplicate')
+        seen.add(path)
+        # JSONv1 --vulnerable omits frameworks for a clean project. Bind its
+        # path to the actual restored assets; never invent a framework row.
+        if 'frameworks' in project:
+            frameworks = project['frameworks']
+            if not isinstance(frameworks, list) or not frameworks:
+                raise RuntimeError('Malformed audit framework rows')
+            visited = set()
+            for framework in frameworks:
+                if not isinstance(framework, dict):
+                    raise RuntimeError('Malformed audit framework object')
+                if not set(framework) <= {'framework', 'topLevelPackages', 'transitivePackages', 'errors', 'warnings', 'problems', 'messages'}:
+                    raise RuntimeError('Unknown audit framework schema')
+                name = framework['framework']
+                if name not in expected[path]['frameworks'] or name in visited:
+                    raise RuntimeError('Foreign or duplicate audit framework')
+                visited.add(name)
+                for kind in ('topLevelPackages', 'transitivePackages'):
+                    rows = framework.get(kind, [])
+                    if not isinstance(rows, list):
+                        raise RuntimeError('Malformed audit package rows')
+                    for package in rows:
+                        if (package['id'], package['resolvedVersion']) not in expected[path]['packages']:
+                            raise RuntimeError('Audit package differs from restore')
+                    if rows:
+                        raise RuntimeError('Vulnerable-filter package rows are not a clean audit')
+    for evidence in expected.values():
+        if hashlib.sha256(bounded_bytes(evidence['assets'], 16 * 1024 * 1024)).hexdigest() != evidence['sha256']:
+            raise RuntimeError('Restored asset identity changed during audit')
+
+def drop_child_identity(uid, gid, groups, os_api=os, libc=None):
+    import ctypes
+    if uid <= 0 or gid < 0 or not groups or len(groups) > 32 or any(type(item) is not int or item < 0 for item in groups):
+        raise RuntimeError('Invalid original SDK identity')
+    libc = libc if libc is not None else ctypes.CDLL(None, use_last_error=True)
+    libc.prctl.argtypes = [ctypes.c_int, *([ctypes.c_ulong] * 4)]
+    libc.prctl.restype = ctypes.c_int
+    # Prevent sudo/setuid or file capabilities from regaining supervisor privileges.
+    if libc.prctl(38, 1, 0, 0, 0) != 0:
+        raise RuntimeError('PR_SET_NO_NEW_PRIVS refused')
+    os_api.setgroups(groups)
+    os_api.setgid(gid)
+    os_api.setuid(uid)
+    if os_api.geteuid() != uid or os_api.getegid() != gid:
+        raise RuntimeError('SDK privilege drop did not take effect')
+    os_api.umask(0o077)
+
+def write_new(path, value):
+    with registration_window():
+        _write_new(path, value)
+
+def _write_new(path, value):
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
+    if len(raw) > 65536:
+        raise ValueError('Evidence frame too large')
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, 'wb', closefd=False) as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+def identity(path):
+    value = path.stat()
+    return value.st_dev, value.st_ino
+
+def descriptor_identity(descriptor):
+    value = os.fstat(descriptor)
+    return value.st_dev, value.st_ino
+
+def retained_creation_identity(path, descriptor):
+    actual = descriptor_identity(descriptor)
+    if identity(path) != actual:
+        raise RuntimeError('Creation path differs from its retained descriptor')
+    return actual
+
+def persist(path, value):
+    with registration_window():
+        _persist(path, value)
+
+def _persist(path, value):
+    if not path.exists():
+        write_new(path, value)
+        return
+    if unique_json(bounded_bytes(path, 65536)) != value:
+        raise RuntimeError('Immutable cleanup receipt changed')
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+def current_group_empty(group):
+    values = dict(line.split() for line in (group / 'cgroup.events').read_text().splitlines())
+    if values.get('populated') not in {'0', '1'}:
+        raise RuntimeError('Cgroup population unavailable')
+    return values['populated'] == '0'
+
+class DeadlineSocket(socket.socket):
+    def recv_into(self, buffer, nbytes=0, flags=0):
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('Absolute Docker RPC deadline')
+        self.settimeout(remaining)
+        return super().recv_into(buffer, nbytes, flags)
+
+class LocalDocker(http.client.HTTPConnection):
+    def __init__(self):
+        super().__init__('localhost', timeout=10)
+    def connect(self):
+        global SOCKET_IDENTITY
+        actual = identity(Path('/var/run/docker.sock'))
+        if SOCKET_IDENTITY is None:
+            SOCKET_IDENTITY = actual
+        if actual != SOCKET_IDENTITY:
+            raise RuntimeError('Local Docker socket identity changed')
+        self.sock = DeadlineSocket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.deadline = min(time.monotonic() + 10, RPC_DEADLINE or float('inf'))
+        self.sock.settimeout(max(.001, self.sock.deadline - time.monotonic()))
+        self.sock.connect('/var/run/docker.sock')
+
+def docker(method, path, body=None):
+    if RPC_DEADLINE is not None and time.monotonic() >= RPC_DEADLINE:
+        raise TimeoutError('Finite Docker cleanup attempt expired')
+    connection = LocalDocker()
+    try:
+        encoded = None if body is None else json.dumps(body).encode()
+        connection.request(method, '/v1.45' + path, body=encoded,
+                           headers={} if encoded is None else {'Content-Type': 'application/json'})
+        response = connection.getresponse()
+        raw = response.read(1024 * 1024 + 1)
+        if len(raw) > 1024 * 1024:
+            raise RuntimeError('Docker response exceeded quota')
+        return response.status, None if not raw else unique_json(raw)
+    finally:
+        connection.close()
+
+def profile(value, intent, run):
+    config, host = value['Config'], value['HostConfig']
+    labels = config.get('Labels') or {}
+    expected = {'maliev.codex.owner': OWNER, 'maliev.codex.sdk-run': run,
+                'maliev.codex.run': intent['childRun'], 'maliev.codex.parent-run': intent['scope'],
+                'maliev.codex.persistent-data': 'false'}
+    if any(labels.get(key) != item for key, item in expected.items()):
+        raise RuntimeError('Foreign container ownership')
+    if value['Name'] != '/' + intent['name'] or config['Image'] != intent['image']:
+        raise RuntimeError('Container intent mismatch')
+    created = dt.datetime.fromisoformat(value['Created'].replace('Z', '+00:00'))
+    admitted = dt.datetime.fromisoformat(intent['createdUtc'].replace('Z', '+00:00'))
+    if not -5 <= (created - admitted).total_seconds() <= 900:
+        raise RuntimeError('Container birth outside exact creation intent')
+    expiry = dt.datetime.fromisoformat(labels['maliev.codex.expires-utc'].replace('Z', '+00:00'))
+    if not 0 < (expiry - admitted).total_seconds() <= 1805:
+        raise RuntimeError('Container expiry profile differs')
+    if intent['image'] in {'postgres:18-alpine', 'postgres:18.1-bookworm'}:
+        memory, cpu, mount, temporary, port = 512 * 1024 * 1024, 1000000000, '/var/lib/postgresql', 'rw,size=384m', '5432/tcp'
+        if config['Cmd'] != ['postgres', '-c', 'statement_timeout=15000', '-c', 'idle_in_transaction_session_timeout=15000']:
+            raise RuntimeError('PostgreSQL command profile differs')
+        if 'PGDATA=/var/lib/postgresql/18/docker' not in config.get('Env', []):
+            raise RuntimeError('PostgreSQL storage profile differs')
+    elif intent['image'] == 'redis:7.4-alpine':
+        memory, cpu, mount, temporary, port = 128 * 1024 * 1024, 500000000, '/data', 'rw,size=64m', '6379/tcp'
+        if config['Cmd'] != ['redis-server', '--save', '', '--appendonly', 'no', '--maxmemory', '64mb']:
+            raise RuntimeError('Redis command profile differs')
+    else:
+        raise RuntimeError('Unknown container image')
+    if (host.get('Memory'), host.get('MemorySwap'), host.get('NanoCpus')) != (memory, memory, cpu):
+        raise RuntimeError('Actual container caps differ')
+    if host.get('Tmpfs') != {mount: temporary} or host.get('Binds') or host.get('Mounts'):
+        raise RuntimeError('Unknown persistent storage')
+    if any(item['Type'] != 'tmpfs' or item['Destination'] != mount for item in value.get('Mounts', [])):
+        raise RuntimeError('Unknown actual mount')
+    bindings = host.get('PortBindings') or {}
+    if set(bindings) != {port} or len(bindings[port]) != 1 or bindings[port][0]['HostIp'] != '127.0.0.1':
+        raise RuntimeError('Unknown port binding')
+    # Never persist Config.Env: Testcontainers' synthetic DB password is still a
+    # credential. Only metadata required by exact owned cleanup is journaled.
+    return {'Id': value['Id'], 'Created': value['Created'], 'Image': value['Image'], 'Name': value['Name'],
+            'imageTag': config['Image'], 'labels': labels, 'command': config['Cmd'],
+            'entrypoint': config.get('Entrypoint'), 'memory': memory, 'cpu': cpu,
+            'tmpfs': host['Tmpfs'], 'portBindings': bindings}
+
+
+def project_inspect_observation(value, expected):
+    identity = {key: value[key] for key in ['Id', 'Created', 'Image', 'Name']}
+    if any(identity[key] != expected[key] for key in identity) or value['Config']['Labels'] != expected['labels']:
+        raise RuntimeError('Inspect observation differs from exact validated ownership')
+    host = value['HostConfig']
+    port = next(iter(expected['portBindings']))
+    return {'capturedUtc': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'identity': dict(identity, labels=expected['labels']),
+            'profileSha256': hashlib.sha256(json.dumps(expected, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+            'inspectMounts': [{'Type': item['Type'], 'Destination': item['Destination']}
+                              for item in value.get('Mounts', [])],
+            'configuredBindCount': len(host.get('Binds') or []),
+            'configuredMountCount': len(host.get('Mounts') or []),
+            'inspectRunning': value['State']['Running'],
+            'inspectPortBindings': {port: None if (value.get('NetworkSettings', {}).get('Ports') or {}).get(port) is None else
+                [{'HostIp': item.get('HostIp'), 'HostPort': item.get('HostPort')}
+                 for item in value['NetworkSettings']['Ports'][port]]}}
+
+def capture_inspect_observation(root, child, stage, value, expected):
+    if stage not in {'initial', 'pre-mutation', 'stopped'}:
+        raise RuntimeError('Unknown bounded inspect stage')
+    path = root / ('inspect-' + child + '-' + stage + '.json')
+    # Optional diagnostics never enter identity comparisons or overwrite an
+    # earlier observation. Three fixed slots bound every retry of this backend.
+    try:
+        if path.exists() or path.is_symlink():
+            return 'previously-captured'
+    except OSError:
+        return 'unavailable'
+    observation = project_inspect_observation(value, expected)
+    if len(json.dumps(observation, sort_keys=True, separators=(',', ':')).encode()) + 1 > 8192:
+        observation = {key: observation[key] for key in ['capturedUtc', 'profileSha256']}
+        observation.update(available=False, reason='inspect-frame-exceeds-8192-byte-budget')
+    try:
+        write_new(path, observation)
+    except (OSError, ValueError):
+        # Evidence quota or storage failure must not retain an otherwise exact
+        # owned resource. The immutable checkpoint still controls all cleanup.
+        return 'unavailable'
+    return 'captured'
+
+
+def refuse_active_clients(value):
+    ports = {int(item['HostPort']) for rows in (value['NetworkSettings'].get('Ports') or {}).values()
+             for item in (rows or []) if item['HostIp'] == '127.0.0.1'}
+    for path in ('/proc/net/tcp', '/proc/net/tcp6'):
+        for row in Path(path).read_text().splitlines()[1:]:
+            items = row.split()
+            if len(items) < 4:
+                raise RuntimeError('TCP census unavailable')
+            local, remote = (int(items[index].split(':')[1], 16) for index in (1, 2))
+            if items[3] == '01' and (local in ports or remote in ports):
+                raise RuntimeError('Owned backend still has active local clients')
+
+def recover_backends(root, run, group):
+    if not current_group_empty(group):
+        raise RuntimeError('SDK producers have not exited')
+    paths = sorted((root / 'intents').glob('*.json'))
+    if len(paths) > 512:
+        raise RuntimeError('Container intent cap exceeded')
+    status, info = docker('GET', '/info')
+    if status != 200 or info.get('OSType') != 'linux' or not info.get('ID'):
+        raise RuntimeError('Local Linux daemon identity unavailable')
+    status, inventory = docker('GET', '/containers/json?all=true&filters=' + quote(json.dumps(
+        {'label': ['maliev.codex.sdk-run=' + run]}, separators=(',', ':')), safe=''))
+    if status != 200 or not isinstance(inventory, list) or len(inventory) > 512:
+        raise RuntimeError('Owned container inventory unavailable')
+    intended_names = {'/' + unique_json(bounded_bytes(path, 4096))['name'] for path in paths}
+    if any(not any(name in intended_names for name in row['Names']) for row in inventory):
+        raise RuntimeError('Unregistered container in the exact SDK run')
+    for path in paths:
+        raw = bounded_bytes(path, 4096)
+        if len(raw) > 4096:
+            raise RuntimeError('Intent exceeds quota')
+        intent = unique_json(raw)
+        if intent['sdkRun'] != run or intent['owner'] != OWNER or intent['daemon'] != info['ID']:
+            raise RuntimeError('Foreign intent or changed daemon')
+        child = intent['childRun']
+        if uuid.UUID(hex=child).hex != child or path.name != child + '.json':
+            raise RuntimeError('Invalid immutable intent name')
+        if uuid.UUID(hex=intent['scope']).hex != intent['scope']:
+            raise RuntimeError('Invalid fixture scope')
+        prefix = 'catalog-redis-' if intent['image'] == 'redis:7.4-alpine' else 'catalog-http-'
+        if not intent['name'].startswith(prefix) or uuid.UUID(hex=intent['name'][len(prefix):]).hex != intent['name'][len(prefix):]:
+            raise RuntimeError('Invalid exact owned container name')
+        # UUID name is recorded before Create. Only reconcile that exact name.
+        status, value = docker('GET', '/containers/' + intent['name'] + '/json')
+        if status == 404:
+            published = root / ('published-' + child + '.json')
+            absent = root / ('absent-' + child + '.json')
+            if not published.exists() and not absent.exists():
+                # A dead SDK and an absent name alone cannot settle a daemon's
+                # unacknowledged Create; retain the pre-dispatch UUID intent.
+                raise RuntimeError('Unacknowledged Create absence is not proof')
+            proof = unique_json(bounded_bytes(published if published.exists() else absent, 4096))
+            if proof['sdkRun'] != run or proof['childRun'] != child:
+                raise RuntimeError('Foreign publication or absence receipt')
+            if published.exists() and (proof['daemon'] != info['ID']
+                or docker('GET', '/containers/' + proof['id'] + '/json')[0] != 404):
+                raise RuntimeError('Published exact-ID absence is unverified')
+            if absent.exists() and unique_json(bounded_bytes(absent, 4096)).get('actualAbsence') is not True:
+                raise RuntimeError('Absence receipt did not prove release')
+            continue
+        if status != 200:
+            raise RuntimeError('Exact container observation unavailable')
+        expected = profile(value, intent, run)
+        capture_inspect_observation(root, child, 'initial', value, expected)
+        checkpoint = root / ('container-' + child + '.json')
+        if checkpoint.exists():
+            if unique_json(bounded_bytes(checkpoint, 65536)) != expected:
+                raise RuntimeError('Captured immutable container identity changed')
+        else:
+            write_new(checkpoint, expected)
+        refuse_active_clients(value)
+        status, repeated = docker('GET', '/containers/' + value['Id'] + '/json')
+        if status != 200 or profile(repeated, intent, run) != expected:
+            raise RuntimeError('Pre-mutation container identity changed')
+        capture_inspect_observation(root, child, 'pre-mutation', repeated, expected)
+        if docker('GET', '/info')[1]['ID'] != info['ID']:
+            raise RuntimeError('Daemon changed before mutation')
+        status, _ = docker('POST', '/containers/' + value['Id'] + '/stop?t=10')
+        if status not in {204, 304}:
+            raise RuntimeError('Exact container stop failed')
+        status, stopped = docker('GET', '/containers/' + value['Id'] + '/json')
+        if status != 200 or stopped['State']['Running'] or profile(stopped, intent, run) != expected:
+            raise RuntimeError('Exact stopped container identity unverified')
+        capture_inspect_observation(root, child, 'stopped', stopped, expected)
+        status, _ = docker('DELETE', '/containers/' + value['Id'] + '?force=false&v=false')
+        if status != 204 or docker('GET', '/containers/' + value['Id'] + '/json')[0] != 404:
+            raise RuntimeError('Physical owned container absence unverified')
+
+def run_owned_phase():
+    global RPC_DEADLINE
+    if sys.platform != 'linux' or len(sys.argv) != 3 or sys.argv[1] not in {'build', 'focused', 'full', 'format', 'audit'}:
+        raise RuntimeError('Only the reviewed explicit Linux phase is supported')
+    phase, executable = sys.argv[1], Path(sys.argv[2]).resolve(strict=True)
+    evidence_uid = int(os.environ.get('MALIEV_CATALOG_EVIDENCE_UID', '-1'))
+    evidence_gid = int(os.environ.get('MALIEV_CATALOG_EVIDENCE_GID', '-1'))
+    if evidence_uid <= 0 or evidence_gid < 0:
+        raise RuntimeError('Original hosted evidence owner is required')
+    import pwd
+    account = pwd.getpwuid(evidence_uid)
+    if account.pw_gid != evidence_gid:
+        raise RuntimeError('Original owner primary group differs')
+    original_groups = sorted(set(os.getgrouplist(account.pw_name, evidence_gid)))
+    if len(original_groups) > 32:
+        raise RuntimeError('Original supplementary group inventory exceeds cap')
+    if not executable.is_file() or executable.name != 'dotnet':
+        raise RuntimeError('Exact SDK executable unavailable')
+    if os.execve not in os.supports_fd:
+        raise RuntimeError('Exact descriptor-based SDK exec is unsupported')
+    executable_identity = identity(executable)
+    executable_sha = hashlib.sha256(executable.read_bytes()).hexdigest()
+    memory = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
+    if int(memory['MemAvailable'].split()[0]) < 4096 * 1024:
+        raise RuntimeError('Memory below 4096 MiB')
+    if not (CGROUP_ROOT / 'cgroup.controllers').exists() or os.geteuid() != 0:
+        raise RuntimeError('Exact root-owned cgroup-v2 boundary unavailable')
+    # Read-only census is admission, never a process-name cleanup selector.
+    for path in Path('/proc').glob('[0-9]*/exe'):
+        try:
+            if path.resolve(strict=True).name == 'dotnet':
+                raise RuntimeError('Another SDK process is active')
+        except FileNotFoundError:
+            pass
+    run = uuid.uuid4().hex
+    root = Path.cwd() / 'runner-results' / ('owned-' + phase + '-' + run)
+    root.mkdir(parents=True, mode=0o700, exist_ok=False)
+    (root / 'intents').mkdir(mode=0o700)
+    (root / 'results').mkdir(mode=0o700)
+    (root / 'home').mkdir(mode=0o700)
+    group = CGROUP_ROOT / ('maliev-catalog-' + run)
+    slot = Path('/tmp/maliev-catalog-sdk-exclusive.lock')
+    slot_value = {'run': run, 'root': str(root), 'ownerPid': os.getpid()}
+    slot_raw = (json.dumps(slot_value, sort_keys=True, separators=(',', ':')) + '\n').encode()
+    slot_identity = None
+    slot_descriptor = None
+    slot_created = False
+    group_identity = None
+    group_descriptor = None
+    group_created = False
+    deadline = time.monotonic() + SDK_SECONDS
+    project = 'Legacy.Maliev.CatalogService.Tests/Legacy.Maliev.CatalogService.Tests.csproj'
+    common = ['-c', 'Release', '--disable-build-servers', '--tl:off', '-m:1', '/p:UseSharedCompilation=false', '/nr:false', '/warnaserror']
+    commands = {'build': ['build', project, *common],
+        'focused': ['test', project, '-c', 'Release', '--no-build', '--no-restore', '--filter',
+                    'FullyQualifiedName~CatalogHttpLifecycleTests|FullyQualifiedName~CatalogResourceLifetimeTests',
+                    '--logger', 'trx;LogFileName=catalog-focused.trx', '--results-directory', str(root / 'results')],
+        'full': ['test', project, '-c', 'Release', '--no-build', '--no-restore', '--logger',
+                 'trx;LogFileName=catalog-full.trx', '--results-directory', str(root / 'results'), '--collect', 'XPlat Code Coverage'],
+        'format': ['format', 'Legacy.Maliev.CatalogService.slnx', '--verify-no-changes', '--no-restore'],
+        'audit': ['list', 'Legacy.Maliev.CatalogService.slnx', 'package', '--vulnerable', '--include-transitive', '--no-restore',
+                  '--format', 'json', '--output-version', '1', '--source', 'https://api.nuget.org/v3/index.json']}
+    audit_identity = restored_audit_identity(Path.cwd()) if phase == 'audit' else None
+    env = {key: value for key, value in os.environ.items() if key in {'PATH', 'DOTNET_ROOT', 'MalievWorkspaceRoot'}}
+    env.update(HOME=str(root / 'home'), DOTNET_CLI_HOME=str(root / 'home'))
+    env.update(MALIEV_CATALOG_RESOURCE_ADMISSION='owned-finite-v1', MALIEV_CATALOG_SDK_RUN=run,
+               MALIEV_CATALOG_SDK_ROOT=str(root), DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER='1',
+               MSBUILDDISABLENODEREUSE='1', DOTNET_CLI_TELEMETRY_OPTOUT='1', DOTNET_CLI_UI_LANGUAGE='en-US',
+               DOTNET_NOLOGO='1', DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1',
+               CATALOG_SOURCE_DIAGNOSTIC_OUTPUT_DIRECTORY=str(root / 'results' / 'country-health-diagnostics'))
+    read_fd = write_fd = error_read_fd = error_write_fd = None
+    child = handle = exec_fd = None
+    first_failure = None
+    exited = False
+    output = None
+    output_descriptor = None
+    error_output = None
+    error_output_descriptor = None
+    pending_descriptors = {}
+    sdk_dispatched = False
+    try:
+        with registration_window():
+            descriptor = os.open(slot, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            slot_descriptor = descriptor
+            slot_created = True
+            pending_descriptors[descriptor] = None
+        slot_identity = retained_creation_identity(slot, descriptor)
+        pending_descriptors[descriptor] = slot_identity
+        with os.fdopen(descriptor, 'wb', closefd=False) as stream:
+            stream.write(slot_raw)
+            stream.flush()
+            os.fsync(descriptor)
+        with registration_window():
+            os.close(descriptor)
+            del pending_descriptors[descriptor]
+            slot_descriptor = None
+        with registration_window():
+            group.mkdir()
+            group_created = True
+        with registration_window():
+            group_descriptor = os.open(group, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            pending_descriptors[group_descriptor] = None
+        group_identity = retained_creation_identity(group, group_descriptor)
+        pending_descriptors[group_descriptor] = group_identity
+        if identity(group) != group_identity:
+            raise RuntimeError('Created cgroup pathname differs from retained directory handle')
+        for name, value in {'memory.max': '2147483648', 'pids.max': '64', 'cpu.max': '100000 100000'}.items():
+            (group / name).write_text(value)
+        RPC_DEADLINE = time.monotonic() + 20
+        status, daemon = docker('GET', '/info')
+        if status != 200 or daemon.get('OSType') != 'linux' or not daemon.get('ID'):
+            raise RuntimeError('Reviewed local Linux daemon is unavailable')
+        write_new(root / 'admission.json', {'run': run, 'cgroup': '/' + group.name, 'daemon': daemon['ID'],
+                  'expiresUtc': (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=SDK_SECONDS)).isoformat(),
+                  'dotnetPath': str(executable), 'dotnetSha256': executable_sha})
+        with registration_window():
+            exec_fd = os.open(executable, os.O_RDONLY)
+            pending_descriptors[exec_fd] = None
+        pending_descriptors[exec_fd] = descriptor_identity(exec_fd)
+        if pending_descriptors[exec_fd] != executable_identity:
+            raise RuntimeError('SDK executable inode changed before acquisition')
+        with registration_window():
+            read_fd, write_fd = os.pipe()
+            pending_descriptors[read_fd] = pending_descriptors[write_fd] = None
+        pending_descriptors[read_fd] = descriptor_identity(read_fd)
+        pending_descriptors[write_fd] = descriptor_identity(write_fd)
+        with registration_window():
+            error_read_fd, error_write_fd = os.pipe()
+            pending_descriptors[error_read_fd] = pending_descriptors[error_write_fd] = None
+        pending_descriptors[error_read_fd] = descriptor_identity(error_read_fd)
+        pending_descriptors[error_write_fd] = descriptor_identity(error_write_fd)
+        with registration_window():
+            output = (root / 'sdk.log').open('xb')
+            output_descriptor = output.fileno()
+        with registration_window():
+            error_output = (root / 'sdk.stderr.log').open('xb')
+            error_output_descriptor = error_output.fileno()
+        for path in (root, root / 'intents', root / 'results', root / 'home', root / 'admission.json'):
+            os.chown(path, evidence_uid, evidence_gid, follow_symlinks=False)
+        parent = os.getpid()
+        with registration_window() as child_mask:
+            child = os.fork()
+            if child == 0:
+                try:
+                    os.close(read_fd)
+                    os.close(error_read_fd)
+                    os.dup2(write_fd, 1)
+                    os.dup2(error_write_fd, 2)
+                    os.close(write_fd)
+                    os.close(error_write_fd)
+                    drop_child_identity(evidence_uid, evidence_gid, original_groups)
+                    guard_child_parent(parent, child_mask)
+                    os.kill(os.getpid(), signal.SIGSTOP)
+                    os.execve(exec_fd, [str(executable), *commands[phase]], env)
+                except BaseException:
+                    os._exit(127)
+        with registration_window():
+            handle = os.pidfd_open(child)
+            pending_descriptors[handle] = None
+        pending_descriptors[handle] = descriptor_identity(handle)
+        with registration_window():
+            os.close(write_fd)
+            del pending_descriptors[write_fd]
+            write_fd = None
+            os.close(error_write_fd)
+            del pending_descriptors[error_write_fd]
+            error_write_fd = None
+        while True:
+            with registration_window():
+                waited, state = os.waitpid(child, os.WUNTRACED | os.WNOHANG)
+                if waited == child and (os.WIFEXITED(state) or os.WIFSIGNALED(state)):
+                    exited = True
+            if waited == child:
+                break
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Pre-exec SDK admission timed out')
+            time.sleep(.01)
+        if waited != child or not os.WIFSTOPPED(state):
+            exited = os.WIFEXITED(state) or os.WIFSIGNALED(state)
+            raise RuntimeError('Pre-exec SDK reservation unavailable')
+        (group / 'cgroup.procs').write_text(str(child))
+        if Path('/proc/' + str(child) + '/cgroup').read_text().strip() != '0::/' + group.name:
+            raise RuntimeError('SDK child cgroup assignment failed')
+        write_new(root / 'child.json', {'pid': child,
+                                      'startTicks': Path('/proc/' + str(child) + '/stat').read_text().rsplit(')', 1)[1].split()[19],
+                                      'cgroupIdentity': group_identity})
+        sdk_dispatched = True
+        signal.pidfd_send_signal(handle, signal.SIGCONT)
+        os.set_blocking(read_fd, False)
+        os.set_blocking(error_read_fd, False)
+        count = 0
+        readers = {read_fd, error_read_fd}
+        while readers:
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Finite SDK phase deadline')
+            ready, _, _ = select.select(list(readers), [], [], .1)
+            for descriptor in ready:
+                block = os.read(descriptor, min(65536, LIMIT - count + 1))
+                if not block:
+                    readers.remove(descriptor)
+                    continue
+                if count + len(block) > LIMIT:
+                    raise RuntimeError('SDK output quota exceeded')
+                (error_output if descriptor == error_read_fd else output).write(block)
+                count += len(block)
+        while True:
+            with registration_window():
+                waited, state = os.waitpid(child, os.WNOHANG)
+                if waited == child:
+                    exited = True
+            if waited == child:
+                break
+            if time.monotonic() >= deadline:
+                raise TimeoutError('SDK exited-output but phase still running')
+            time.sleep(.01)
+        exited = waited == child
+        sdk_failure = RuntimeError('SDK phase failed') if not exited or not os.WIFEXITED(state) or os.WEXITSTATUS(state) != 0 else None
+        try:
+            output.flush()
+            error_output.flush()
+            persist(root / 'results' / 'phase-status.json', {'run': run, 'phase': phase,
+                    'waitStatus': state, 'exitCode': os.WEXITSTATUS(state) if os.WIFEXITED(state) else None,
+                    'signal': os.WTERMSIG(state) if os.WIFSIGNALED(state) else None})
+            if phase == 'build':
+                diagnostics = project_build_diagnostics(
+                    bounded_bytes(root / 'sdk.log', LIMIT), bounded_bytes(root / 'sdk.stderr.log', LIMIT), Path.cwd())
+                if sdk_failure is not None and diagnostics['diagnosticAvailability'] == 'none':
+                    diagnostics['diagnosticAvailability'] = 'unavailable'
+                persist(root / 'results' / 'build-diagnostics.json', diagnostics)
+        except BaseException:
+            if sdk_failure is None:
+                raise
+            # Publication cannot replace the original unsuccessful SDK status.
+        if sdk_failure is not None:
+            raise sdk_failure
+        if phase == 'audit':
+            verify_audit(bounded_bytes(root / 'sdk.log', LIMIT), bounded_bytes(root / 'sdk.stderr.log', LIMIT), audit_identity)
+        if phase == 'build':
+            text = (root / 'sdk.log').read_text(errors='strict')
+            if len(re.findall(r'^\s*0 Warning\(s\)\s*$', text, re.M)) != 1 or len(re.findall(r'^\s*0 Error\(s\)\s*$', text, re.M)) != 1:
+                raise RuntimeError('Build lacks actual zero-warning zero-error summary')
+    except BaseException as failure:
+        first_failure = failure
+    finally:
+        # Finite attempts, same owner retained until all physical release succeeds.
+        errors = 0
+        while True:
+            try:
+                RPC_DEADLINE = time.monotonic() + 20
+                # Retry transient metadata faults on the same retained creation
+                # descriptors, never by treating a fresh path lookup as birth.
+                if slot_created and slot_identity is None and slot_descriptor is not None:
+                    slot_identity = retained_creation_identity(slot, slot_descriptor)
+                    pending_descriptors[slot_descriptor] = slot_identity
+                if group_created and group_identity is None and group_descriptor is not None:
+                    group_identity = retained_creation_identity(group, group_descriptor)
+                    pending_descriptors[group_descriptor] = group_identity
+                if group_created and group_identity is None or slot_created and slot_identity is None:
+                    raise RuntimeError('Created ownership primitive identity is unverified; retain claim')
+                # Also covers a forked child still stopped before cgroup assignment.
+                if child is not None and not exited:
+                    with registration_window():
+                        waited, _ = os.waitpid(child, os.WNOHANG)
+                        if waited == child:
+                            exited = True
+                    if waited == child:
+                        exited = True
+                    else:
+                        if handle is not None:
+                            signal.pidfd_send_signal(handle, signal.SIGKILL)
+                        else:
+                            # An unreaped direct child cannot have its PID reused.
+                            os.kill(child, signal.SIGKILL)
+                if group_identity is not None:
+                    if identity(group) != group_identity:
+                        raise RuntimeError('Cgroup immutable identity changed')
+                    if not current_group_empty(group):
+                        (group / 'cgroup.kill').write_text('1')
+                        until = time.monotonic() + 20
+                        while not current_group_empty(group):
+                            if time.monotonic() >= until:
+                                raise TimeoutError('Exact cgroup exit unverified')
+                            time.sleep(.05)
+                if child is not None and not exited:
+                    with registration_window():
+                        waited, _ = os.waitpid(child, os.WNOHANG)
+                        if waited == child:
+                            exited = True
+                    if waited != child:
+                        raise RuntimeError('Exact SDK child unreaped')
+                    exited = True
+                if group_identity is not None and sdk_dispatched:
+                    recover_backends(root, run, group)
+                for descriptor, expected in list(pending_descriptors.items()):
+                    try:
+                        actual = descriptor_identity(descriptor)
+                    except OSError as failure:
+                        if failure.errno != 9:
+                            raise
+                        del pending_descriptors[descriptor]
+                        continue
+                    if expected is None:
+                        pending_descriptors[descriptor] = actual
+                    elif actual != expected:
+                        raise RuntimeError('Owned descriptor identity changed')
+                    with registration_window():
+                        os.close(descriptor)
+                        del pending_descriptors[descriptor]
+                if output is not None:
+                    if output.closed:
+                        try:
+                            descriptor_identity(output_descriptor)
+                        except OSError as failure:
+                            if failure.errno != 9:
+                                raise
+                        else:
+                            raise RuntimeError('Closed output wrapper still has a live descriptor')
+                    else:
+                        output.flush()
+                        os.fsync(output.fileno())
+                        with registration_window():
+                            output.close()
+                            output = None
+                    output = None
+                if error_output is not None:
+                    if error_output.closed:
+                        try:
+                            descriptor_identity(error_output_descriptor)
+                        except OSError as failure:
+                            if failure.errno != 9:
+                                raise
+                        else:
+                            raise RuntimeError('Closed error wrapper still has a live descriptor')
+                    else:
+                        error_output.flush()
+                        os.fsync(error_output.fileno())
+                        with registration_window():
+                            error_output.close()
+                            error_output = None
+                    error_output = None
+                persist(root / 'cleanup-barrier.json', {'run': run, 'sdkExited': True,
+                         'ownedBackendsAbsent': True, 'handlesReleased': True, 'slotReleased': False})
+                break
+            except BaseException as failure:
+                if first_failure is None:
+                    first_failure = failure
+                errors += 1
+                if errors <= 16 or errors % 180 == 0 and errors // 180 <= 32:
+                    try:
+                        write_new(root / ('quarantine-' + str(errors) + '.json'),
+                                  {'failureType': type(failure).__name__, 'attempt': errors, 'released': False})
+                    except BaseException:
+                        pass  # Journal failure never abandons retained cleanup ownership.
+                try:
+                    time.sleep(5)
+                except BaseException as failure:
+                    if first_failure is None:
+                        first_failure = failure
+        # Partial slot writes are still owned by their exclusive creation inode.
+        # Release errors remain supervised; never abandon a failed rmdir/unlink.
+        while group_identity is not None or slot_identity is not None:
+            try:
+                if group_identity is not None:
+                    if identity(group) != group_identity:
+                        raise RuntimeError('Exact cgroup release identity changed')
+                    with registration_window():
+                        group.rmdir()
+                        group_identity = None
+                if slot_identity is not None:
+                    if identity(slot) != slot_identity or not slot_raw.startswith(bounded_bytes(slot, len(slot_raw))):
+                        raise RuntimeError('Exact SDK slot identity or partial prefix changed')
+                    with registration_window():
+                        slot.unlink()
+                        slot_identity = None
+            except BaseException as failure:
+                if first_failure is None:
+                    first_failure = failure
+                try:
+                    time.sleep(5)
+                except BaseException:
+                    pass
+        try:
+            persist(root / 'results' / 'release-status.json', released_primitive_receipt(run, group, slot))
+        except BaseException as failure:
+            if first_failure is None:
+                first_failure = failure
+        # Private while running; return only this run's evidence to the original
+        # hosted checkout owner after physical cleanup and exact claim release.
+        try:
+            for directory, directories, files in os.walk(root, followlinks=False):
+                paths = [Path(directory), *[Path(directory) / item for item in directories + files]]
+                for path in paths:
+                    if path.is_symlink():
+                        raise RuntimeError('Foreign symlink in owned evidence root')
+                    os.chown(path, evidence_uid, evidence_gid, follow_symlinks=False)
+        except BaseException as failure:
+            if first_failure is None:
+                first_failure = failure
+            else:
+                try:
+                    print('Secondary final evidence ownership transfer fault: ' + type(failure).__name__, file=sys.stderr)
+                except BaseException:
+                    pass  # Diagnostic failure cannot replace the first owned failure.
+    if first_failure is not None:
+        raise first_failure
+
+def main():
+    def cancel(signum, frame):
+        raise KeyboardInterrupt('Owned phase cancellation')
+    previous = {}
+    try:
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            previous[signum] = signal.signal(signum, cancel)
+        run_owned_phase()
+    finally:
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
+
+if __name__ == '__main__':
+    main()
