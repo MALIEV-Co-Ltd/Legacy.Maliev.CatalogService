@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "9cc4a8ff7d56c2db6c0e527004a9eff5305837dc7553355e41b5cc20155e7eac",
-  "capsuleSha256": "abf2f6a36253047ef5d909095c29e64e850df5cb4a14e9ab431987b4ecc7b14b",
+  "sourceManifestSha256": "71e5d6cd5622c81155a02dcdbf0b73594b5cf9d21d2a9ea7a58719dad1a022a9",
+  "capsuleSha256": "1daaa963e28db492b83f3cfd0e781250d5096aa71b6dae037008ffbceaded3b2",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -61,8 +61,8 @@
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogMethodProgressFramework.cs",
-      "sha256": "2362208d0e7cb0084c545d715dd3d0371005d62b1518613ccec80f59e94830a5",
-      "bytes": 4146
+      "sha256": "10bf6ca33620988e859467d130bb0003c130d219c0993c0483150a71be2ee52f",
+      "bytes": 7073
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogNativeScope.cs",
@@ -126,13 +126,13 @@
     },
     {
       "path": "scripts/catalog-ordinary-controller-seal.json",
-      "sha256": "e1e253b46f64b0dcbfb52264cee826a49402972c66c6f6a48ff22be6b5d36fee",
-      "bytes": 185
+      "sha256": "88e026f42be059fb490810f8373ae0571599ad576cc8c188616efcbefebdbd9d",
+      "bytes": 179
     },
     {
       "path": "scripts/catalog_method_progress_projection.py",
-      "sha256": "eaaa2281118d8db769a96ab3ab62b0b55c6d4981a4a4e9d5f1bc9609a56d376a",
-      "bytes": 2281
+      "sha256": "c073c4aa14418315c8459bbba5f212b36aba9ddb52b1fde4d3ab105f3cc9d43a",
+      "bytes": 4510
     },
     {
       "path": "scripts/catalog_platform_progress_projection.py",
@@ -151,8 +151,8 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "sha256": "563f9edabf97da8bcb3c046329e80b88d56629dcc10542d0bf5e771fdcf11607",
-      "bytes": 59284
+      "sha256": "6801cbbb31604af39ad1cb679b94385a211936399ac2c1cedca10c311bc492c7",
+      "bytes": 58294
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
@@ -161,8 +161,8 @@
     },
     {
       "path": "scripts/test_catalog_method_progress_projection.py",
-      "sha256": "d0e7062043ec068b7900ea43531005ef94df0a5134803071526114d18204b1d2",
-      "bytes": 2687
+      "sha256": "6cd33d40bbc9fcb184b29cf326c343b00268e45196f3520ba67901ffa0587ffa",
+      "bytes": 6942
     },
     {
       "path": "scripts/test_catalog_platform_progress_projection.py",
