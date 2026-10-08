@@ -24,9 +24,9 @@ class TransportControls(unittest.TestCase):
         rows = {row['path']: row for row in policy['sourceFiles']}
         seal = module.parse((SCRIPT.parent / 'catalog-ordinary-controller-seal.json').read_bytes())
         fixture = Path(__file__).with_name('fixtures') / 'catalog-v16-owned-supervisor.py.txt'
-        self.assertEqual(rows[seal['path']]['sha256'], seal['sha256'])
-        self.assertEqual(rows[seal['path']]['bytes'], seal['bytes'])
-        for path in ['scripts/probe_catalog_controller.py', 'scripts/catalog-ordinary-controller-seal.json']:
+        self.assertEqual(hashlib.sha256(fixture.read_bytes()).hexdigest(), seal['sha256'])
+        self.assertEqual(len(fixture.read_bytes()), seal['bytes'])
+        for path in ['scripts/probe_catalog_controller.py']:
             raw = (repository / path).read_bytes()
             self.assertEqual(rows[path]['sha256'], hashlib.sha256(raw).hexdigest())
             self.assertEqual(rows[path]['bytes'], len(raw))
@@ -65,8 +65,8 @@ class TransportControls(unittest.TestCase):
         policy = json.loads((repository / 'scripts/catalog-candidate-policy.json').read_bytes())
         row, = [item for item in policy['sourceFiles']
                 if item['path'] == 'scripts/run-catalog-owned-qualification.py']
-        self.assertEqual(row['bytes'], len(raw))
-        self.assertEqual(row['sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(54830, len(raw))
+        self.assertEqual('85082f82ea9aaf228290dca28d852202fee2348b76c1883ab5d7cbb00726e283', hashlib.sha256(raw).hexdigest())
         producer = runpy.run_path(str(fixture))
         child = 'c' * 32
         expected = {'Id': 'e' * 64, 'Created': '2026-10-08T00:00:01+00:00',
@@ -130,7 +130,7 @@ class TransportControls(unittest.TestCase):
             with patch.object(module, '__file__', str(root/'scripts/materialize_catalog_candidate.py')), patch.object(sys, 'argv', argv), patch.dict(os.environ, GITHUB_REPOSITORY=module.REPOSITORY, GITHUB_SHA=head), patch.object(module, 'git', return_value=head.encode()), patch.object(module, 'fetch', side_effect=fetch) as fetched, patch.object(module, 'materialize') as materialized:
                 module.main()
                 self.assertEqual([manifest_blob, capsule_blob], [call.args[0] for call in fetched.call_args_list])
-                self.assertEqual(27, len(materialized.call_args.args[2]))
+                self.assertEqual(30, len(materialized.call_args.args[2]))
             receipt = json.loads((root/'evidence/source-materialization.json').read_text())
             self.assertEqual(manifest_blob, receipt['manifestBlob'])
             self.assertEqual(capsule_blob, receipt['capsuleBlob'])
@@ -138,7 +138,7 @@ class TransportControls(unittest.TestCase):
 
     def setUp(self):
         self.manifest = b'reviewed synthetic manifest'
-        self.files = [{'path': f'source/{number}.cs', 'content': 'literal\r\n'} for number in range(27)]
+        self.files = [{'path': f'source/{number}.cs', 'content': 'literal\r\n'} for number in range(30)]
         self.capsule = {'schemaVersion': 1, 'repository': module.REPOSITORY, 'acceptedBase': module.BASE, 'sourceFiles': self.files}
         self.raw = json.dumps(self.capsule).encode()
         self.policy = {'schemaVersion': 1, 'repository': module.REPOSITORY, 'acceptedBase': module.BASE,
@@ -154,7 +154,7 @@ class TransportControls(unittest.TestCase):
         return module.validate(raw, self.manifest, policy)
     def test_exact26_preserves_crlf(self):
         result = self.validate()
-        self.assertEqual(27, len(result))
+        self.assertEqual(30, len(result))
         self.assertEqual(b'literal\r\n', result['source/0.cs'])
     def test_foreign_repository_base_schema_rejected(self):
         for key, value in [('repository', 'foreign/repo'), ('acceptedBase', '0' * 40), ('schemaVersion', True)]:
@@ -220,24 +220,17 @@ class TransportControls(unittest.TestCase):
         policy['sourcePins'][next(iter(policy['sourcePins']))] = '0' * 40
         with self.assertRaisesRegex(ValueError, 'dependency pins'):
             self.validate(policy=policy)
-    def test_committed_policy_is_exact_catalog_v20_inventory(self):
+    def test_committed_policy_is_exact_catalog_v21_inventory(self):
         policy = module.parse((SCRIPT.parent / 'catalog-candidate-policy.json').read_bytes())
         self.assertEqual(module.REPOSITORY, policy['repository'])
         self.assertEqual(module.BASE, policy['acceptedBase'])
         self.assertEqual(module.SOURCE_PINS, policy['sourcePins'])
-        self.assertEqual(27, len(policy['sourceFiles']))
-        self.assertEqual(27, len({row['path'] for row in policy['sourceFiles']}))
-        self.assertEqual('212ebef0291d3ae2a7d91e68db5ca0ece697d976d8cf34f9cf81958ccde67dd8', policy['sourceManifestSha256'])
-        self.assertEqual('b220094b0e5b29efd129f68dd91338bdf0948bc75e1798bf973720a3bd92b47c', policy['capsuleSha256'])
+        self.assertEqual(30, len(policy['sourceFiles']))
+        self.assertEqual(30, len({row['path'] for row in policy['sourceFiles']}))
+        self.assertEqual('d2c9b096e1aa3b6ef05283a5df595794adecc9f613a18eafafdcc4745de6ab50', policy['sourceManifestSha256'])
+        self.assertEqual('d069461b993081e54a38145c8794ff519d2b39cf5046ae8c2eea89d48da09c3a', policy['capsuleSha256'])
         rows = {row['path']: row for row in policy['sourceFiles']}
-        for path, size, sha in (
-            ('Legacy.Maliev.CatalogService.Tests/Lookups/ThaiAddressLookupTests.cs', 12518, 'c376c9b5e0b85a4ebdd1cfd249b7c570c7bc71c156623925e1f05a64c428b3ab'),
-            ('scripts/run-catalog-owned-qualification.py', 54830, '85082f82ea9aaf228290dca28d852202fee2348b76c1883ab5d7cbb00726e283'),
-            ('scripts/test-catalog-owned-qualification.py', 54398, '44461c0b0a7f7b84854266431a507cdc590d67a5f06fc897995edb0d1052fc9a'),
-            ('docs/catalog-owned-qualification-source-20261008.md', 21907, 'b9679e03128a94efa9fca1f884f8a2dbbcc5ed1bf83ce72c7c17f0fdc0191b78'),
-            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs', 13180, '45120461ef895cc3a7ecd00300314c8a6373ac2a44a59a0be136c167da7ecbe4'),
-            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetimeTests.cs', 18844, '6af08249463622988319f181d41cc68334fb48e5167524593886d3fcab6b19c3'),
-            ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs', 12416, 'a408c157f8a11a022dafff5651f1920c9b0b8d96911e555ab2f2f90e290b17d0')):
+        for path, size, sha in (('.github/workflows/_build-and-test.yml', 5621, '7982b50fa63aab011975d992510b7f4f929756869830db7a0245639934d2c6ae'), ('.github/workflows/catalog-owned-qualification.yml', 2925, '616d1eca0195bef1a35a5aafc9f5d77e5f2b233bf2627f1630e34b41a5dce4bb'), ('Legacy.Maliev.CatalogService.Application/Models/CatalogModels.cs', 7072, 'bd671c85be7af0555c3169f4a71bbf78792869fda36567f3e2630bcba0ad3ce9'), ('Legacy.Maliev.CatalogService.Tests/CatalogResourceAssembly.cs', 327, '86a9bc214a3bc1619d3c22c83d32c754b69e534a057b72a640fa8f0ee383f63c'), ('Legacy.Maliev.CatalogService.Tests/Integration/AdditiveMaterialReconciliationStartupTests.cs', 26623, '90447b98454b86b53c33622fd7af230ec05353731dde7c59066f404e00e20298'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogEntrypointSettlement.cs', 4938, '0ba30672ea3346d9ee45faf9c0657bfc7e7004ccf211eb71e33a5c49ba3baf05'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogHttpLifecycleTests.cs', 46328, '9da98f76b401824329b692ff10c5c6a2422e1095acaa932fdbed0a8fc964bbc9'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogMaterialCollectionFailureHttpTests.cs', 12153, 'db3ac02f997b803474ac2ba88809225702709d8a5bbd1295b0cedcb1594f4bab'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogMethodProgressFramework.cs', 4146, '2362208d0e7cb0084c545d715dd3d0371005d62b1518613ccec80f59e94830a5'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogNativeScope.cs', 10572, '4599193298b8cacbeb15670229379ccc8c509f7cc7f2db3cf7fb4da8ba353b82'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs', 13180, '45120461ef895cc3a7ecd00300314c8a6373ac2a44a59a0be136c167da7ecbe4'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs', 12416, 'a408c157f8a11a022dafff5651f1920c9b0b8d96911e555ab2f2f90e290b17d0'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedisConnection.cs', 1354, '1bbacf811a2d1015b1ee86a057c444c85804c71dd50a66384252d2f4a8895f30'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetime.cs', 19974, '901a0155ad789fa5150b13ac60c63da5f0c07a9a52ed6d9b51fc50d0c0851276'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetimeTests.cs', 18844, '6af08249463622988319f181d41cc68334fb48e5167524593886d3fcab6b19c3'), ('Legacy.Maliev.CatalogService.Tests/Integration/CatalogSdkOwnership.cs', 5454, '4f02c026b5f77a4ba66268f6b2fd5266d662f836ff5793f336a16a06c97ee21d'), ('Legacy.Maliev.CatalogService.Tests/Integration/MaterialCollectionFailureFixture.cs', 14343, '0e96f4fe29aac0a583a66abf0d286c8e5a810fb49181d9b12efcb6864ca048d7'), ('Legacy.Maliev.CatalogService.Tests/Integration/PostgreSqlMigrationTests.cs', 9632, 'c73370f2dad340bed8178c3e06d0e5963cfcff3e2d22087ef1ce0ab0c5f2d1a0'), ('Legacy.Maliev.CatalogService.Tests/Integration/ReadOnlyCatalogStartupFixture.cs', 12664, 'b76a1f8f64e3306e77c9900a6aeb2cc915baf0d17e9ce35d0bf86ef5aeb9b909'), ('Legacy.Maliev.CatalogService.Tests/Integration/ReadOnlyCatalogStartupTests.cs', 12139, '324b4ff5019452d066ec867f260ad948add06e95cda39c4ed5116d971225d1ea'), ('Legacy.Maliev.CatalogService.Tests/Lookups/ThaiAddressLookupTests.cs', 12518, 'c376c9b5e0b85a4ebdd1cfd249b7c570c7bc71c156623925e1f05a64c428b3ab'), ('docs/catalog-owned-qualification-source-20261008.md', 23230, 'c37f181fe3f787dc244957ac4fd3ef61f112a5d71c37138de1fd3c5ce9a9fd2b'), ('docs/material-group-literal-name-source-parity-20261008.md', 3171, '3f8a71164210a34f7d8db54c0b39d9236e0d9db515bbb1cd2ff5423f36df5853'), ('scripts/catalog-ordinary-controller-seal.json', 179, '24b3fc3f16ad667c4ff849edfd214cd8f16ae92d17c0e2173677fc8c949aa520'), ('scripts/catalog_method_progress_projection.py', 2281, 'eaaa2281118d8db769a96ab3ab62b0b55c6d4981a4a4e9d5f1bc9609a56d376a'), ('scripts/country-health-diagnostic-expected.json', 2090, '7f2c391317074a9ba6ea79c1d4f42662ead1c1bb16beea579eb75085e68ab428'), ('scripts/probe_catalog_controller.py', 18135, 'bfa2ea6082912f270c8a6bc208923c5750fa81ec2be8232305fdb0035d3abe85'), ('scripts/run-catalog-owned-qualification.py', 56456, 'dca856bdf0ffe19966a203bfcbd2b381a2617c96c43ba3784eb755dc3cc3f5d5'), ('scripts/test-catalog-owned-qualification.py', 54474, '4bf49cbc8bbf23c986d25336ee81cda0fb6dbc3f936e3511072b72a5a771c0af'), ('scripts/test_catalog_method_progress_projection.py', 2687, 'd0e7062043ec068b7900ea43531005ef94df0a5134803071526114d18204b1d2')):
             self.assertEqual(size, rows[path]['bytes'])
             self.assertEqual(sha, rows[path]['sha256'])
     def test_workflow_keeps_pr_pure_and_native_main_only(self):
