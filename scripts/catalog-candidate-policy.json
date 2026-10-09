@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "521d00af334a8e57831fbbc46eefc4841eeee3d2408b6bde540e8d28d40b9bef",
-  "capsuleSha256": "fb63e2995e5a5344f711a5a69e7b7550f7b17b2125da4b36837fe53eb27b52ed",
+  "sourceManifestSha256": "5998b162b47c55e5198d2af19dc3483afa42e7bab07e8c10912af9339016e0c6",
+  "capsuleSha256": "6d62cef8e8690b414af75e291946dbb2595396a056a8a727fff58130abb35634",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -12,7 +12,7 @@
     {
       "path": ".github/workflows/_build-and-test.yml",
       "bytes": 5653,
-      "sha256": "2d00a3bd2ff891c9bd7d393ba23f262053e02a08b87cf145c2ac4a4e0b1cee0f"
+      "sha256": "c7a6220f253e1dc8e79b475dc23cbfd6bcc012a7b0cc998744e2dc4602109422"
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
@@ -31,8 +31,8 @@
     },
     {
       "path": "Legacy.Maliev.CatalogService.Application/Models/CatalogModels.cs",
-      "bytes": 7228,
-      "sha256": "d51f5f23c024191ed4b928e9a272ae60c48c7e5d31d2c2a711e5cfc079224680"
+      "bytes": 7402,
+      "sha256": "c8980aadfbcf2a65518522aee08f994c93288861ff2727686f4d3e31c4e62399"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/CatalogResourceAssembly.cs",
@@ -142,7 +142,7 @@
     {
       "path": "scripts/country-health-diagnostic-expected.json",
       "bytes": 2090,
-      "sha256": "3f30c5d29cda2e72aab20e0633801d7c625edd711d86df0152aedfe00a8c8ce6"
+      "sha256": "5238291032265b16d3739058a1db6451525de7c363f09959dae90162ae019125"
     },
     {
       "path": "scripts/probe_catalog_controller.py",
@@ -151,8 +151,8 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "bytes": 66592,
-      "sha256": "5138fd367b98cfaf7bbd7ddfa12bfebe7f0206b1b0d7b1579d64b9fde9e8dddf"
+      "bytes": 66648,
+      "sha256": "26ebd7cc5036eadd959dce31f582c91ef18d3e8cc5625893c9b6e5d8ac4d78b1"
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
@@ -243,6 +243,16 @@
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialLinkedCollectionSourceHttpTests.cs",
       "bytes": 6896,
       "sha256": "9639a628c9be10cf7e6fa812b9afc34aff1fc2665a5b270d1b2add793b4da071"
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Application/Models/LegacyQuotedBooleanJsonConverter.cs",
+      "bytes": 855,
+      "sha256": "15bddea4f0c58ddf5d347832ed5d86dae6ce8b45b94a50ee0561cdff64f25737"
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialQuotedBooleanSourceHttpTests.cs",
+      "bytes": 8915,
+      "sha256": "5a74e2cec371ec3939b977a32b3d8d0f83e9ce214d38405e7a6ad578767e84c2"
     }
   ]
 }

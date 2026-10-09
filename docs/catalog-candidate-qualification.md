@@ -1,5 +1,13 @@
 # Catalog sealed candidate transport
 
+## Scoped material quoted Boolean request source successor
+
+Exactly49 raw postimages bind manifest `5998b162b47c55e5198d2af19dc3483afa42e7bab07e8c10912af9339016e0c6` and capsule `6d62cef8e8690b414af75e291946dbb2595396a056a8a727fff58130abb35634`. Forty-three prior47 files remain byte-identical; four overlaps are request models, forecast JSON, workflow labels, and focused filter. Two files add a property-scoped Boolean converter and nine real HTTP/PostgreSQL regressions.
+
+Original5fac706a7983a6d359b39acbd670e6800afe020e Material POST and PUT copy both flags after original Newtonsoft MVC binding. Seven full-file witnesses plus a separate five-file caller proof retain source/configuration/model/action/persistence evidence. Only UpsertMaterialRequest.Machinable and Printable accept bool.TryParse-compatible quoted values; native Boolean read/write and unrelated serializers remain unchanged. Eight POST/PUT/field/value cases preserve literal names, Boolean output, created Location, fresh persistence, sentinel and association graphs; one control covers native/omitted flags, invalid strings, exact permissions and no mutation. Predicted8RED+1control are source predictions, not observed executions.
+
+Prior47/462 and historical packets remain immutable. Native9/full471, format/audit/coverage and provider cleanup are UNRUN pending fresh finite qualified exact-source-bound admission. Numeric, null and empty-string coercion, exact original deployed Newtonsoft binary, and whole serializer/source closure remain pending. Country ownership, material-delete integrity disposition, negative-size obligations, accepted source base, dependency pins, all caps, memory floor, scanners, default execution and cleanup remain unchanged. This source intake does not commit application CSharp, authorize native dispatch, or deploy.
+
 ## Linked Color/SurfaceFinish collection contract source successor
 
 Exactly47 postimages bind manifest `521d00af334a8e57831fbbc46eefc4841eeee3d2408b6bde540e8d28d40b9bef` and capsule `fb63e2995e5a5344f711a5a69e7b7550f7b17b2125da4b36837fe53eb27b52ed`. Forty-three parent46 postimages remain byte-identical. This is validation-only coverage: all existing application/repository/fixture bytes are unchanged, with three forecast/workflow-label/focused-filter overlaps and one new four-case HTTP class.
