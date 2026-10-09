@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "d94ea228dfadab97ec9f4e9af29dffe7c965f90d2a928f116e4954485fd96953",
-  "capsuleSha256": "4ae404b770d853d8e8a16fa146e60612455ceed44dd8edc9d3f2de2433a11dba",
+  "sourceManifestSha256": "521d00af334a8e57831fbbc46eefc4841eeee3d2408b6bde540e8d28d40b9bef",
+  "capsuleSha256": "fb63e2995e5a5344f711a5a69e7b7550f7b17b2125da4b36837fe53eb27b52ed",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -12,7 +12,7 @@
     {
       "path": ".github/workflows/_build-and-test.yml",
       "bytes": 5653,
-      "sha256": "740813aed4f9ae6f1efb7807b3e57ca257267a01e4c89f2c3f272fc68319d6ea"
+      "sha256": "2d00a3bd2ff891c9bd7d393ba23f262053e02a08b87cf145c2ac4a4e0b1cee0f"
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
@@ -142,7 +142,7 @@
     {
       "path": "scripts/country-health-diagnostic-expected.json",
       "bytes": 2090,
-      "sha256": "0e542315124380bb0c0fcd298eeb7506f305c71b73ec093288bc3d399dc1f0cd"
+      "sha256": "3f30c5d29cda2e72aab20e0633801d7c625edd711d86df0152aedfe00a8c8ce6"
     },
     {
       "path": "scripts/probe_catalog_controller.py",
@@ -151,8 +151,8 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "bytes": 66533,
-      "sha256": "a0e4754961177eb3a933f8f452f71d90c3f70521d26bc96db08f357db766e8c5"
+      "bytes": 66592,
+      "sha256": "5138fd367b98cfaf7bbd7ddfa12bfebe7f0206b1b0d7b1579d64b9fde9e8dddf"
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
@@ -238,6 +238,11 @@
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialDeleteIntegrityHttpTests.cs",
       "bytes": 7113,
       "sha256": "5c637062fc709b1da4966cc4d97997e28d37fbfe3fe0e2dbdc058f7b2c09d78e"
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialLinkedCollectionSourceHttpTests.cs",
+      "bytes": 6896,
+      "sha256": "9639a628c9be10cf7e6fa812b9afc34aff1fc2665a5b270d1b2add793b4da071"
     }
   ]
 }

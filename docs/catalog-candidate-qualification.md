@@ -1,5 +1,13 @@
 # Catalog sealed candidate transport
 
+## Linked Color/SurfaceFinish collection contract source successor
+
+Exactly47 postimages bind manifest `521d00af334a8e57831fbbc46eefc4841eeee3d2408b6bde540e8d28d40b9bef` and capsule `fb63e2995e5a5344f711a5a69e7b7550f7b17b2125da4b36837fe53eb27b52ed`. Forty-three parent46 postimages remain byte-identical. This is validation-only coverage: all existing application/repository/fixture bytes are unchanged, with three forecast/workflow-label/focused-filter overlaps and one new four-case HTTP class.
+
+Original5fac706a7983a6d359b39acbd670e6800afe020e linked Color/SurfaceFinish methods select every target without Distinct, preserve duplicate multiplicity and null target navigation before the original NullValueHandling.Ignore response. Five immutable controller/startup/model witnesses bind exact target Id/Name/CreatedDate/ModifiedDate fields, literal names, timestamps and navigation omission. Four authored real-PG cases verify duplicate targets, missing/empty404, material-read auth and complete sentinel graph/count preservation through the existing owned fixture and EndCaseAsync. No production gap or baseline causal RED is claimed; four baseline controls are predictions, not executions.
+
+Parent46/458 and prior packets remain immutable. Native4/full462/format/audit/coverage/provider cleanup are UNRUN pending fresh qualified finite source-bound admission. Existing accepted base, dependencies, caps, memory floor, default execution and gates remain unchanged. Material-delete integrity, negative-size and per-SHA owner obligations stay open; no whole-source closure, application CSharp commit, new framework, migration or deployment follows.
+
 ## Operation-scoped material deletion integrity successor
 
 Exactly46 postimages bind manifest `d94ea228dfadab97ec9f4e9af29dffe7c965f90d2a928f116e4954485fd96953` and capsule `4ae404b770d853d8e8a16fa146e60612455ceed44dd8edc9d3f2de2433a11dba`. Forty-one parent45 postimages remain byte-identical. One operation-scoped existing EF transaction covers all three association deletes plus final Material removal/save/commit. Other entity deletes, API204/404/auth, isolation, retries and owning databases remain unchanged.
