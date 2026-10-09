@@ -1,5 +1,13 @@
 # Catalog sealed candidate transport
 
+## Operation-scoped material deletion integrity successor
+
+Exactly46 postimages bind manifest `d94ea228dfadab97ec9f4e9af29dffe7c965f90d2a928f116e4954485fd96953` and capsule `4ae404b770d853d8e8a16fa146e60612455ceed44dd8edc9d3f2de2433a11dba`. Forty-one parent45 postimages remain byte-identical. One operation-scoped existing EF transaction covers all three association deletes plus final Material removal/save/commit. Other entity deletes, API204/404/auth, isolation, retries and owning databases remain unchanged.
+
+Three authored real-PG cases extend existing success coverage with untouched linked-sentinel evidence, final-delete PostgreSQL rejection rollback with trigger/function cleanup in finally, and caller abort at the existing final-save barrier with owned host disposal before readback. Four overlaps are repository, forecast458, workflow labels and focused filter; one test class is added. Four full-SHA controller/model/repository witnesses bind the scoped disposition for original5fac706a7983a6d359b39acbd670e6800afe020e DeleteMaterialAsync: retain target all-association cleanup as migration integrity improvement, rather than recreating potential historical partial writes. Original provider/status outcomes remain unknown; per-SHA obligation and whole source remain open pending actual native acceptance.
+
+Parent45/455 and prior packets remain immutable. Native3/full458/format/audit/coverage/provider cleanup are UNRUN pending fresh qualified finite source-bound admission. Caps, memory floor, accepted base, dependency pins and execution gates remain unchanged. No application CSharp commit, global transaction framework, deployment, data migration or blanket source closure is implied.
+
 ## Authoritative Country/Currency collections source successor
 
 Exactly45 postimages bind manifest `e7876607df9d5ff051edfaedf886a0f79ead4cf6e0568cacdaf2fa1566c62998` and capsule `1c26f688af98029d6919fd8463c11e48a6eec3d6a56ae2b909eaa87131e1df17`. Thirty-nine parent44 postimages remain byte-identical. Two existing repository-list calls restore authoritative Country/Currency collection reads; current Country Name sort, Currency repository order, literal DTO fields, permissions and empty404 remain. The original full-SHA5fac706a7983a6d359b39acbd670e6800afe020e Country/Currency controllers read their owning databases. Canonical CountryService and original Country ledger owner are unchanged.
