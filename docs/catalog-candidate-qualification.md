@@ -1,5 +1,11 @@
 # Catalog sealed candidate transport
 
+## Explicit-zero pagination successor prepared on 2026-10-09
+
+The exact44-postimage successor adds four HTTP cases for explicit zero size. One service expression restores empty items/controller404 for size0; omitted/positive/negative behavior remains unchanged. The new test consumer uses the existing EndCaseAsync adapter. Thirty-nine prior43 postimages are byte-identical; the four overlaps are service expression, forecast447, workflow labels and focused filter. All34 earlier retained original paths and all previous case-disposal adapters remain unchanged. Historical43/443,42/439 and38/433 packets remain immutable.
+
+Negative size remains a separate unclosed source-derived divergence with original/runtime HTTP evidence unavailable; this zero-only change does not claim blanket pagination parity or alter the shared helper/owners. Four focused and full447 counts are forecasts until qualified finite source-bound native build-first/focused/full/static/coverage/cleanup pass. Existing resource framework/caps/gates and CountryService ownership remain unchanged.
+
 ## Filtered material successor prepared on 2026-10-09
 
 This successor seals exactly43 postimages with a full443 forecast. Two precise service substitutions restore the original omitted MaterialGroup in machinable/printable lists while paginated results retain group inclusion. Four new PostgreSQL HTTP cases cover the wire shape, permissions and empty results. Five source-test consumers now call the existing owned fixture EndCaseAsync in disposal, including the four earlier added classes; no fixture or resource framework changes. Thirty-four of the prior42 postimages remain byte-identical. The eight overlaps are service, four case-disposal expressions, forecast, workflow labels and focused filter. Historical38/433 and42/439 packets remain immutable.
