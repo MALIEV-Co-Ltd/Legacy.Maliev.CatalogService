@@ -1,5 +1,15 @@
 # Catalog sealed candidate transport
 
+## Material null, empty and numeric Boolean source successor
+
+Exactly50 raw source postimages bind manifest `da9b4eebfb1f08d4d1c37d1a4ad071514c98e6bb81819579b6c227668b785108` and capsule `b45b7388ae748b093af68beb0757701a59d8f58d501b34f7368cb856d8958516`. Forty-five prior49 files remain byte-identical; four overlaps are the existing scoped converter, forecast JSON, workflow labels and focused filter. One added HTTP class authors96 cases, giving567 full forecast.
+
+Original5fac706a7983a6d359b39acbd670e6800afe020e CreateMaterialAsync94/95 and UpdateMaterialAsync451/452 copy two flags from fresh mutable input. Null/exactempty defaultfalse; native/quoted behavior is retained. Standard JSON numeric flags follow original default Double parsing and zero comparison or BigInteger zero comparison with380-character integer limit including minus. Signed overflow infinity and nonzero subnormals become true, signed underflow zero becomes false; no unsupported finite/subnormal/underflow rejection is added. Seven binding witnesses and nine full raw commit-pinned framework witnesses support the source comparison: Newtonsoft13.0.3 resolves0a2e291c0d9c0c7675d445703e51750363a549ef and .NET8 resolves5535e31a712343a63f5d7d796cd874e563e5ac14. Current DTO attributes, auth, caller/persistence/cache and response contracts are unchanged.
+
+Twenty-three accepted lexemes across each flag and POST/PUT give92 authored persistence cases including signed subnormal/overflow/underflow and wide integer boundaries; four controls assert invalid whitespace/shape/lexical/oversized signed integer no-write plus exact401/403, full graphs and table counts. Predicted92RED+4controls are source predictions, not actual executions. Rejected earlier v3 source history is retained; only corrected v4 is bound here.
+
+Prior49/471 and historical packets remain immutable. Native96/full567, Release build, format/audit/coverage/boundary/provider cleanup are UNRUN pending fresh finite qualified exact-source-bound admission. Original deployed serializer/runtime binary, nonstandard JSON hex/octal/NaN/Infinity lexical forms and whole serializer/source closure remain pending, without approved retirement. Country ownership, older material-delete/negative-size obligations, accepted source base, dependency pins, caps, scanners, memory floor, execution defaults and cleanup remain unchanged. No application CSharp commit, native dispatch, migration or deployment follows.
+
 ## Scoped material quoted Boolean request source successor
 
 Exactly49 raw postimages bind manifest `5998b162b47c55e5198d2af19dc3483afa42e7bab07e8c10912af9339016e0c6` and capsule `6d62cef8e8690b414af75e291946dbb2595396a056a8a727fff58130abb35634`. Forty-three prior47 files remain byte-identical; four overlaps are request models, forecast JSON, workflow labels, and focused filter. Two files add a property-scoped Boolean converter and nine real HTTP/PostgreSQL regressions.
