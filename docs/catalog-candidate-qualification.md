@@ -1,5 +1,11 @@
 # Catalog sealed candidate transport
 
+## Filtered material successor prepared on 2026-10-09
+
+This successor seals exactly43 postimages with a full443 forecast. Two precise service substitutions restore the original omitted MaterialGroup in machinable/printable lists while paginated results retain group inclusion. Four new PostgreSQL HTTP cases cover the wire shape, permissions and empty results. Five source-test consumers now call the existing owned fixture EndCaseAsync in disposal, including the four earlier added classes; no fixture or resource framework changes. Thirty-four of the prior42 postimages remain byte-identical. The eight overlaps are service, four case-disposal expressions, forecast, workflow labels and focused filter. Historical38/433 and42/439 packets remain immutable.
+
+All case counts remain forecasts until native build-first, focused, full, static/coverage/original exports and exact cleanup pass under fresh current qualified finite source-bound admission. Original source ownership, dependency pins, resource caps and default-off gates are unchanged.
+
 ## Association existence successor prepared on 2026-10-09
 
 The reviewed material color and surface-finish creation correction adds four source paths to the prior immutable 38-path candidate. This successor seals exactly42 postimages, retaining35 parent postimages byte-for-byte. The only three parent overlaps are the full forecast433 to439, the ordinary workflow labels, and the existing focused filter extended to MaterialAssociationExistenceSourceHttpTests. Six authored PostgreSQL HTTP cases preserve original POST Any semantics and GET/DELETE SingleOrDefault semantics. CountryService ownership and all existing caps, fixture gates and dependency pins remain unchanged. The prior38/433 packet remains historical evidence.
