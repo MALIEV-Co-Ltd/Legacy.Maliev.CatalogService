@@ -1,5 +1,11 @@
 # Catalog sealed candidate transport
 
+## Authoritative Country/Currency collections source successor
+
+Exactly45 postimages bind manifest `e7876607df9d5ff051edfaedf886a0f79ead4cf6e0568cacdaf2fa1566c62998` and capsule `1c26f688af98029d6919fd8463c11e48a6eec3d6a56ae2b909eaa87131e1df17`. Thirty-nine parent44 postimages remain byte-identical. Two existing repository-list calls restore authoritative Country/Currency collection reads; current Country Name sort, Currency repository order, literal DTO fields, permissions and empty404 remain. The original full-SHA5fac706a7983a6d359b39acbd670e6800afe020e Country/Currency controllers read their owning databases. Canonical CountryService and original Country ledger owner are unchanged.
+
+Eight authored real-PG/Redis cases reuse the owned fixture, ACL failure controls and late-fill barrier: failed invalidation create/update/delete/last-row404, independent-host old fill, direct owning-database literal/order reads, and invalid/unauthorized write preservation. Five narrow parent overlaps are service, fixture reset/context/client permission adapters, forecast455, workflow labels and focused filter; one test class is added. All prior association, filtered-list and zero-size corrections remain. Historical44/447 and earlier packets remain immutable; negative size stays separately unclosed. Native8/full455/static/coverage/provider cleanup are UNRUN pending fresh qualified finite source-bound admission. Caps, memory floor, accepted base, dependency pins and execution gates are unchanged. No CSharp commit, global cache disable, deployment or blanket source closure is implied.
+
 ## Explicit-zero pagination successor prepared on 2026-10-09
 
 The exact44-postimage successor adds four HTTP cases for explicit zero size. One service expression restores empty items/controller404 for size0; omitted/positive/negative behavior remains unchanged. The new test consumer uses the existing EndCaseAsync adapter. Thirty-nine prior43 postimages are byte-identical; the four overlaps are service expression, forecast447, workflow labels and focused filter. All34 earlier retained original paths and all previous case-disposal adapters remain unchanged. Historical43/443,42/439 and38/433 packets remain immutable.
