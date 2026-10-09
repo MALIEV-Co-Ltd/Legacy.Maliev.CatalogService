@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "f359b00957d404808564549c436233a45b3247bc6c4761e7296f96b82e0a172c",
-  "capsuleSha256": "5cc3a2005b5de3757edefc722c5d6a96bef458f916c1722143ce03d0fc1fcdc8",
+  "sourceManifestSha256": "e7876607df9d5ff051edfaedf886a0f79ead4cf6e0568cacdaf2fa1566c62998",
+  "capsuleSha256": "1c26f688af98029d6919fd8463c11e48a6eec3d6a56ae2b909eaa87131e1df17",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -11,223 +11,228 @@
   "sourceFiles": [
     {
       "path": ".github/workflows/_build-and-test.yml",
-      "sha256": "a08115d3950ea9cd5bf6360666f05168da2f7bf26cc6bb452225a147cc229cc7",
-      "bytes": 5653
+      "bytes": 5653,
+      "sha256": "7e8ed72e82c54c0c2e1a1ce49d248bf18cc605b38d2f1119b63f789f6abeb3e3"
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
-      "sha256": "616d1eca0195bef1a35a5aafc9f5d77e5f2b233bf2627f1630e34b41a5dce4bb",
-      "bytes": 2925
+      "bytes": 2925,
+      "sha256": "616d1eca0195bef1a35a5aafc9f5d77e5f2b233bf2627f1630e34b41a5dce4bb"
     },
     {
       "path": "docs/catalog-owned-qualification-source-20261008.md",
-      "sha256": "fb3f4bf61112824132ce312a7d8a151ec480f6a6a730cd9a0ff8272e30f0996b",
-      "bytes": 29766
+      "bytes": 29766,
+      "sha256": "fb3f4bf61112824132ce312a7d8a151ec480f6a6a730cd9a0ff8272e30f0996b"
     },
     {
       "path": "docs/material-group-literal-name-source-parity-20261008.md",
-      "sha256": "3f8a71164210a34f7d8db54c0b39d9236e0d9db515bbb1cd2ff5423f36df5853",
-      "bytes": 3171
+      "bytes": 3171,
+      "sha256": "3f8a71164210a34f7d8db54c0b39d9236e0d9db515bbb1cd2ff5423f36df5853"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Application/Models/CatalogModels.cs",
-      "sha256": "d51f5f23c024191ed4b928e9a272ae60c48c7e5d31d2c2a711e5cfc079224680",
-      "bytes": 7228
+      "bytes": 7228,
+      "sha256": "d51f5f23c024191ed4b928e9a272ae60c48c7e5d31d2c2a711e5cfc079224680"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/CatalogResourceAssembly.cs",
-      "sha256": "86a9bc214a3bc1619d3c22c83d32c754b69e534a057b72a640fa8f0ee383f63c",
-      "bytes": 327
+      "bytes": 327,
+      "sha256": "86a9bc214a3bc1619d3c22c83d32c754b69e534a057b72a640fa8f0ee383f63c"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/AdditiveMaterialReconciliationStartupTests.cs",
-      "sha256": "90447b98454b86b53c33622fd7af230ec05353731dde7c59066f404e00e20298",
-      "bytes": 26623
+      "bytes": 26623,
+      "sha256": "90447b98454b86b53c33622fd7af230ec05353731dde7c59066f404e00e20298"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogEntrypointSettlement.cs",
-      "sha256": "0ba30672ea3346d9ee45faf9c0657bfc7e7004ccf211eb71e33a5c49ba3baf05",
-      "bytes": 4938
+      "bytes": 4938,
+      "sha256": "0ba30672ea3346d9ee45faf9c0657bfc7e7004ccf211eb71e33a5c49ba3baf05"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogHttpLifecycleTests.cs",
-      "sha256": "2f10ff2acc324bc8875046eab1979271221ffa75df52a0c59795f74dbc97f638",
-      "bytes": 46328
+      "bytes": 46328,
+      "sha256": "2f10ff2acc324bc8875046eab1979271221ffa75df52a0c59795f74dbc97f638"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogMaterialCollectionFailureHttpTests.cs",
-      "sha256": "db3ac02f997b803474ac2ba88809225702709d8a5bbd1295b0cedcb1594f4bab",
-      "bytes": 12153
+      "bytes": 12153,
+      "sha256": "db3ac02f997b803474ac2ba88809225702709d8a5bbd1295b0cedcb1594f4bab"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogMethodProgressFramework.cs",
-      "sha256": "10bf6ca33620988e859467d130bb0003c130d219c0993c0483150a71be2ee52f",
-      "bytes": 7073
+      "bytes": 7073,
+      "sha256": "10bf6ca33620988e859467d130bb0003c130d219c0993c0483150a71be2ee52f"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogNativeScope.cs",
-      "sha256": "4599193298b8cacbeb15670229379ccc8c509f7cc7f2db3cf7fb4da8ba353b82",
-      "bytes": 10572
+      "bytes": 10572,
+      "sha256": "4599193298b8cacbeb15670229379ccc8c509f7cc7f2db3cf7fb4da8ba353b82"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedPostgres.cs",
-      "sha256": "45120461ef895cc3a7ecd00300314c8a6373ac2a44a59a0be136c167da7ecbe4",
-      "bytes": 13180
+      "bytes": 13180,
+      "sha256": "45120461ef895cc3a7ecd00300314c8a6373ac2a44a59a0be136c167da7ecbe4"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedis.cs",
-      "sha256": "a408c157f8a11a022dafff5651f1920c9b0b8d96911e555ab2f2f90e290b17d0",
-      "bytes": 12416
+      "bytes": 12416,
+      "sha256": "a408c157f8a11a022dafff5651f1920c9b0b8d96911e555ab2f2f90e290b17d0"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogOwnedRedisConnection.cs",
-      "sha256": "1bbacf811a2d1015b1ee86a057c444c85804c71dd50a66384252d2f4a8895f30",
-      "bytes": 1354
+      "bytes": 1354,
+      "sha256": "1bbacf811a2d1015b1ee86a057c444c85804c71dd50a66384252d2f4a8895f30"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetime.cs",
-      "sha256": "901a0155ad789fa5150b13ac60c63da5f0c07a9a52ed6d9b51fc50d0c0851276",
-      "bytes": 19974
+      "bytes": 19974,
+      "sha256": "901a0155ad789fa5150b13ac60c63da5f0c07a9a52ed6d9b51fc50d0c0851276"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogResourceLifetimeTests.cs",
-      "sha256": "6af08249463622988319f181d41cc68334fb48e5167524593886d3fcab6b19c3",
-      "bytes": 18844
+      "bytes": 18844,
+      "sha256": "6af08249463622988319f181d41cc68334fb48e5167524593886d3fcab6b19c3"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogSdkOwnership.cs",
-      "sha256": "4f02c026b5f77a4ba66268f6b2fd5266d662f836ff5793f336a16a06c97ee21d",
-      "bytes": 5454
+      "bytes": 5454,
+      "sha256": "4f02c026b5f77a4ba66268f6b2fd5266d662f836ff5793f336a16a06c97ee21d"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialCollectionFailureFixture.cs",
-      "sha256": "0e96f4fe29aac0a583a66abf0d286c8e5a810fb49181d9b12efcb6864ca048d7",
-      "bytes": 14343
+      "bytes": 15295,
+      "sha256": "5e361a9fafce427e9746ebb00494295478af8684a52517dd9901933f44c9b7a8"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/PostgreSqlMigrationTests.cs",
-      "sha256": "c73370f2dad340bed8178c3e06d0e5963cfcff3e2d22087ef1ce0ab0c5f2d1a0",
-      "bytes": 9632
+      "bytes": 9632,
+      "sha256": "c73370f2dad340bed8178c3e06d0e5963cfcff3e2d22087ef1ce0ab0c5f2d1a0"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/ReadOnlyCatalogStartupFixture.cs",
-      "sha256": "b76a1f8f64e3306e77c9900a6aeb2cc915baf0d17e9ce35d0bf86ef5aeb9b909",
-      "bytes": 12664
+      "bytes": 12664,
+      "sha256": "b76a1f8f64e3306e77c9900a6aeb2cc915baf0d17e9ce35d0bf86ef5aeb9b909"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/ReadOnlyCatalogStartupTests.cs",
-      "sha256": "324b4ff5019452d066ec867f260ad948add06e95cda39c4ed5116d971225d1ea",
-      "bytes": 12139
+      "bytes": 12139,
+      "sha256": "324b4ff5019452d066ec867f260ad948add06e95cda39c4ed5116d971225d1ea"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Lookups/ThaiAddressLookupTests.cs",
-      "sha256": "c376c9b5e0b85a4ebdd1cfd249b7c570c7bc71c156623925e1f05a64c428b3ab",
-      "bytes": 12518
+      "bytes": 12518,
+      "sha256": "c376c9b5e0b85a4ebdd1cfd249b7c570c7bc71c156623925e1f05a64c428b3ab"
     },
     {
       "path": "scripts/catalog-ordinary-controller-seal.json",
-      "sha256": "842fda15e857fd1f51f4f867813f72311e6e250757f30cdcad919c2c235305b1",
-      "bytes": 185
+      "bytes": 185,
+      "sha256": "842fda15e857fd1f51f4f867813f72311e6e250757f30cdcad919c2c235305b1"
     },
     {
       "path": "scripts/catalog_method_progress_projection.py",
-      "sha256": "c073c4aa14418315c8459bbba5f212b36aba9ddb52b1fde4d3ab105f3cc9d43a",
-      "bytes": 4510
+      "bytes": 4510,
+      "sha256": "c073c4aa14418315c8459bbba5f212b36aba9ddb52b1fde4d3ab105f3cc9d43a"
     },
     {
       "path": "scripts/catalog_platform_progress_projection.py",
-      "sha256": "4d9058c01437cbe274e33e73cc91670ae25be67edb59ec882ee3c88fe5c93089",
-      "bytes": 7951
+      "bytes": 7951,
+      "sha256": "4d9058c01437cbe274e33e73cc91670ae25be67edb59ec882ee3c88fe5c93089"
     },
     {
       "path": "scripts/country-health-diagnostic-expected.json",
-      "sha256": "615eedd713cddee1296b0505684d7d4149010543c9eba2a78498548b5558cf2e",
-      "bytes": 2090
+      "bytes": 2090,
+      "sha256": "f50a6706a2ff350641c8d156c9f559b7923bae014072ce99aefaac2fa492f769"
     },
     {
       "path": "scripts/probe_catalog_controller.py",
-      "sha256": "bfa2ea6082912f270c8a6bc208923c5750fa81ec2be8232305fdb0035d3abe85",
-      "bytes": 18135
+      "bytes": 18135,
+      "sha256": "bfa2ea6082912f270c8a6bc208923c5750fa81ec2be8232305fdb0035d3abe85"
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "sha256": "ce39f0961c91387495456a54d3456bb8cb0a489c796e16c2d361b6bf625d534c",
-      "bytes": 66419
+      "bytes": 66481,
+      "sha256": "e9a30eed32ca16d0b8c1fd3be76edc8400bc6afac73176a41f541d1ba886e3b9"
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
-      "sha256": "9f878479d4c65e525fcbc97c59bd702c990d9cc586dfd6f6c9a3d16cdafa5a63",
-      "bytes": 63884
+      "bytes": 63884,
+      "sha256": "9f878479d4c65e525fcbc97c59bd702c990d9cc586dfd6f6c9a3d16cdafa5a63"
     },
     {
       "path": "scripts/test_catalog_method_progress_projection.py",
-      "sha256": "6cd33d40bbc9fcb184b29cf326c343b00268e45196f3520ba67901ffa0587ffa",
-      "bytes": 6942
+      "bytes": 6942,
+      "sha256": "6cd33d40bbc9fcb184b29cf326c343b00268e45196f3520ba67901ffa0587ffa"
     },
     {
       "path": "scripts/test_catalog_platform_progress_projection.py",
-      "sha256": "589a4321694a6de809e236202b31dbada4386ea62196d7ec1e18b5c6de614b8a",
-      "bytes": 15638
+      "bytes": 15638,
+      "sha256": "589a4321694a6de809e236202b31dbada4386ea62196d7ec1e18b5c6de614b8a"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Data/FrankfurterExchangeRateClient.cs",
-      "sha256": "ac87ba56e81132481686691e3131739259c6bf112e1777544bcf1d5ebd3d80a9",
-      "bytes": 1484
+      "bytes": 1484,
+      "sha256": "ac87ba56e81132481686691e3131739259c6bf112e1777544bcf1d5ebd3d80a9"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Data/FrankfurterExchangeRateClientTests.cs",
-      "sha256": "8cabc47965a162778ef14807114177f99aaa3de98454ad7c8d3a711c1ed83bd1",
-      "bytes": 1498
+      "bytes": 1498,
+      "sha256": "8cabc47965a162778ef14807114177f99aaa3de98454ad7c8d3a711c1ed83bd1"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogExchangeRateHttpTests.cs",
-      "sha256": "990854f812bed9085b170e7cdde4aa1e8ec2031ccb24b92fc21d878c33ba450f",
-      "bytes": 9166
+      "bytes": 9166,
+      "sha256": "990854f812bed9085b170e7cdde4aa1e8ec2031ccb24b92fc21d878c33ba450f"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialGroupNameSourceHttpTests.cs",
-      "sha256": "b7e503e6f3c8ed90311605b9e539722d39dc4607ad79ea9b38e6d210b66d34be",
-      "bytes": 4967
+      "bytes": 4967,
+      "sha256": "b7e503e6f3c8ed90311605b9e539722d39dc4607ad79ea9b38e6d210b66d34be"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialResourceNameSourceHttpTests.cs",
-      "sha256": "28eaa1a3e8a1b3c846c78e9490862e22d64d9d4022a9acdfb7f804ab5d942e47",
-      "bytes": 12085
+      "bytes": 12085,
+      "sha256": "28eaa1a3e8a1b3c846c78e9490862e22d64d9d4022a9acdfb7f804ab5d942e47"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CountryCurrencyNameSourceHttpTests.cs",
-      "sha256": "e9e8731420c5ed03015bbe270d7a4702fde74c5e7ceb2e2ac808e6372abbaf3f",
-      "bytes": 7335
+      "bytes": 7335,
+      "sha256": "e9e8731420c5ed03015bbe270d7a4702fde74c5e7ceb2e2ac808e6372abbaf3f"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Application/Interfaces/ICatalogRepository.cs",
-      "sha256": "519c9bf9da2374b63c0fc64f0b64cd720dc169065498149d1668bb6c675eece5",
-      "bytes": 2714
+      "bytes": 2714,
+      "sha256": "519c9bf9da2374b63c0fc64f0b64cd720dc169065498149d1668bb6c675eece5"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Application/Services/CatalogApplicationService.cs",
-      "sha256": "e3a4bcd914d77ef5606bf7fb2321b3027144e2ba0b810b433484a062b0e627ff",
-      "bytes": 25792
+      "bytes": 25773,
+      "sha256": "46593f78c6a02b5564dbe19919ea12ab244fee8c4238697c4b7049a968b952d9"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Data/CatalogRepository.cs",
-      "sha256": "f713cfa971c5fb46170cc3540797cfb1b93e2a41e96ebf69e5f253732a23b87e",
-      "bytes": 5660
+      "bytes": 5660,
+      "sha256": "f713cfa971c5fb46170cc3540797cfb1b93e2a41e96ebf69e5f253732a23b87e"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialAssociationExistenceSourceHttpTests.cs",
-      "sha256": "f9ca2f50bf1d10b7b68167a2927dc70e5ea83100934ebfa09e321cc5b2b16e53",
-      "bytes": 6874
+      "bytes": 6874,
+      "sha256": "f9ca2f50bf1d10b7b68167a2927dc70e5ea83100934ebfa09e321cc5b2b16e53"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/FilteredMaterialSourceHttpTests.cs",
-      "sha256": "9f7710a942f51e8b69f3d5436456146ccd734498db2ac6f5156de77cfdb47961",
-      "bytes": 6286
+      "bytes": 6286,
+      "sha256": "9f7710a942f51e8b69f3d5436456146ccd734498db2ac6f5156de77cfdb47961"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialZeroSizeSourceHttpTests.cs",
-      "sha256": "dbfb85176127e2a224bfbe31aa8635c8e3336e710239c1c99a38ceed7410055a",
-      "bytes": 6821
+      "bytes": 6821,
+      "sha256": "dbfb85176127e2a224bfbe31aa8635c8e3336e710239c1c99a38ceed7410055a"
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/CatalogReferenceCollectionFailureHttpTests.cs",
+      "bytes": 12149,
+      "sha256": "06ae2bba6daeafa799d7b328973427bbea84ebfe376af2c464d3fcb1a5db7964"
     }
   ]
 }
