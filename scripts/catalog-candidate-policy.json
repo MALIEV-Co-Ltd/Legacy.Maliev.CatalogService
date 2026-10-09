@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "671b3e5c6970eb2c65b8aa24355442edfc79c8fc9107fbe075031593a3a03fa9",
-  "capsuleSha256": "713634a2705e9c82e6fe9d536610bcd51d093d5abf69a7ac25162400e6de9585",
+  "sourceManifestSha256": "98879aaab267bbe28bad09e41ffedf70662a75bbcab75a41625575b2d17e380d",
+  "capsuleSha256": "c476877a93da81e8002e7a818b5c7c0e5e8ad9c50bd905689cb16a8d41dca217",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -11,7 +11,7 @@
   "sourceFiles": [
     {
       "path": ".github/workflows/_build-and-test.yml",
-      "sha256": "339c86d0c61b18937a84951ed6e4add0ffbdd40841ec60e5b3536fe2abd2edd0",
+      "sha256": "cc41e842259fe994a2851b203802a04999ff9ca59fc8b7f10006120837b93965",
       "bytes": 5653
     },
     {
@@ -141,7 +141,7 @@
     },
     {
       "path": "scripts/country-health-diagnostic-expected.json",
-      "sha256": "b8e96405a782da5208f7b6fd00ddcec7c83ebf3f9e881607670893e97c2b92e4",
+      "sha256": "aedfdded6dfdb10e5ff80330825c6a357d50e74c538ad0dbbe0a3d641c87a48c",
       "bytes": 2090
     },
     {
@@ -151,8 +151,8 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "sha256": "fc38857cc850c89e85cbe7da21917ed8f4f551449b2c8ddd49b28b54bcd9da66",
-      "bytes": 66254
+      "sha256": "2d02398542b31ad70cfa43a400d98b2ee5ae983657fb9ab1e96c09e691334a84",
+      "bytes": 66317
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
@@ -198,6 +198,26 @@
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/CountryCurrencyNameSourceHttpTests.cs",
       "sha256": "9add62ff4d2f771d6c44f0a176fa4a3b53ecaf7be68009aeaa5348dc0372782b",
       "bytes": 7331
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Application/Interfaces/ICatalogRepository.cs",
+      "sha256": "519c9bf9da2374b63c0fc64f0b64cd720dc169065498149d1668bb6c675eece5",
+      "bytes": 2714
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Application/Services/CatalogApplicationService.cs",
+      "sha256": "2df20e1e195eab6cd3d106ee5b1e3f2d40abdff2f907cdc1ce8f1f481b3f8a0c",
+      "bytes": 25676
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Data/CatalogRepository.cs",
+      "sha256": "f713cfa971c5fb46170cc3540797cfb1b93e2a41e96ebf69e5f253732a23b87e",
+      "bytes": 5660
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialAssociationExistenceSourceHttpTests.cs",
+      "sha256": "11758d14f39ff865e782e371005a87934bd5f3dab2b9f04be5f6c12f040258ed",
+      "bytes": 6870
     }
   ]
 }
