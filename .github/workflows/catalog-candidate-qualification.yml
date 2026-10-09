@@ -33,7 +33,7 @@ on:
         required: true
         type: string
       capsule_blob:
-        description: Same-repository immutable blob of exact43 raw Catalog postimages
+        description: Same-repository immutable blob of exact44 raw Catalog postimages
         required: true
         type: string
 
@@ -133,7 +133,7 @@ jobs:
             MALIEV_CATALOG_EVIDENCE_UID="$(id -u)" MALIEV_CATALOG_EVIDENCE_GID="$(id -g)" \
             CATALOG_BUILD_EVENT_PATH="$GITHUB_EVENT_PATH" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" \
             python3 -B ../scripts/run_catalog_build_grant.py "$sdk"
-      - name: Actual owned build first, focused tests, complete443, format and typed audit
+      - name: Actual owned build first, focused tests, complete447, format and typed audit
         if: inputs.mode == 'sealed-native'
         working-directory: candidate
         shell: bash
