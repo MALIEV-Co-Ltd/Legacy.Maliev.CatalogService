@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "repository": "MALIEV-Co-Ltd/Legacy.Maliev.CatalogService",
   "acceptedBase": "3f426723743570a6c20d2c014499445abb0774e1",
-  "sourceManifestSha256": "5998b162b47c55e5198d2af19dc3483afa42e7bab07e8c10912af9339016e0c6",
-  "capsuleSha256": "6d62cef8e8690b414af75e291946dbb2595396a056a8a727fff58130abb35634",
+  "sourceManifestSha256": "da9b4eebfb1f08d4d1c37d1a4ad071514c98e6bb81819579b6c227668b785108",
+  "capsuleSha256": "b45b7388ae748b093af68beb0757701a59d8f58d501b34f7368cb856d8958516",
   "sourcePins": {
     "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults": "7edcd961024868513fd5f373cab3dcb261197f77",
     "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts": "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7"
@@ -12,7 +12,7 @@
     {
       "path": ".github/workflows/_build-and-test.yml",
       "bytes": 5653,
-      "sha256": "c7a6220f253e1dc8e79b475dc23cbfd6bcc012a7b0cc998744e2dc4602109422"
+      "sha256": "aa2235694b9d8f84a6a75a4174739ccc4d4523799918e1563050adaa390d36f0"
     },
     {
       "path": ".github/workflows/catalog-owned-qualification.yml",
@@ -142,7 +142,7 @@
     {
       "path": "scripts/country-health-diagnostic-expected.json",
       "bytes": 2090,
-      "sha256": "5238291032265b16d3739058a1db6451525de7c363f09959dae90162ae019125"
+      "sha256": "5cb83bbfdb0e04b7358c7e183f57e6c4d72ee005350483e0aee595583b493181"
     },
     {
       "path": "scripts/probe_catalog_controller.py",
@@ -151,8 +151,8 @@
     },
     {
       "path": "scripts/run-catalog-owned-qualification.py",
-      "bytes": 66648,
-      "sha256": "26ebd7cc5036eadd959dce31f582c91ef18d3e8cc5625893c9b6e5d8ac4d78b1"
+      "bytes": 66706,
+      "sha256": "3a8b2e3462f48d17ac8a64b59074247ef5d571cbab4870a9393d4b65064fc65f"
     },
     {
       "path": "scripts/test-catalog-owned-qualification.py",
@@ -246,13 +246,18 @@
     },
     {
       "path": "Legacy.Maliev.CatalogService.Application/Models/LegacyQuotedBooleanJsonConverter.cs",
-      "bytes": 855,
-      "sha256": "15bddea4f0c58ddf5d347832ed5d86dae6ce8b45b94a50ee0561cdff64f25737"
+      "bytes": 2312,
+      "sha256": "894b08a0a8ced6830cf66fbb1b29fd75a9ef1cb2c8e46888c625a82a5ea00259"
     },
     {
       "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialQuotedBooleanSourceHttpTests.cs",
       "bytes": 8915,
       "sha256": "5a74e2cec371ec3939b977a32b3d8d0f83e9ce214d38405e7a6ad578767e84c2"
+    },
+    {
+      "path": "Legacy.Maliev.CatalogService.Tests/Integration/MaterialBooleanCoercionSourceHttpTests.cs",
+      "bytes": 8892,
+      "sha256": "1a0f895ff6efd3a9cd23d7a910da17b250f73fe345f5d12805e6c53f79a535b0"
     }
   ]
 }

@@ -90,8 +90,8 @@ def validate(raw, manifest, policy):
     if set(capsule) != {'schemaVersion', 'repository', 'acceptedBase', 'sourceFiles'} or type(capsule['schemaVersion']) is not int or capsule['schemaVersion'] != 1 or capsule['repository'] != REPOSITORY or capsule['acceptedBase'] != BASE:
         raise ValueError('Foreign capsule schema/base/repository')
     expected = {path_name(row['path']): row for row in policy['sourceFiles']}
-    if len(expected) != 49 or len(policy['sourceFiles']) != 49 or len(capsule['sourceFiles']) != 49:
-        raise ValueError('Exact49 source inventory required')
+    if len(expected) != 50 or len(policy['sourceFiles']) != 50 or len(capsule['sourceFiles']) != 50:
+        raise ValueError('Exact50 source inventory required')
     files = {}
     for row in capsule['sourceFiles']:
         if set(row) != {'path', 'content'}:
