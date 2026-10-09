@@ -1,5 +1,11 @@
 # Catalog sealed candidate transport
 
+## Association existence successor prepared on 2026-10-09
+
+The reviewed material color and surface-finish creation correction adds four source paths to the prior immutable 38-path candidate. This successor seals exactly42 postimages, retaining35 parent postimages byte-for-byte. The only three parent overlaps are the full forecast433 to439, the ordinary workflow labels, and the existing focused filter extended to MaterialAssociationExistenceSourceHttpTests. Six authored PostgreSQL HTTP cases preserve original POST Any semantics and GET/DELETE SingleOrDefault semantics. CountryService ownership and all existing caps, fixture gates and dependency pins remain unchanged. The prior38/433 packet remains historical evidence.
+
+The full439 and focused-six counts are forecasts. Source-only controls cannot grant native acceptance. Build first with zero warnings/errors, focused cases, affected full suite, static checks, coverage and exact cleanup require a fresh finite source-bound permit after the current Shared Workflows Linux security qualification. No native grant is issued by this source update.
+
 ## Business source successor prepared on 2026-10-09
 
 The reviewed literal-name and exchange-rate changes are integrated into the existing V28 candidate, retaining its owned fixtures and earlier application tests. The sealed source inventory is now exactly38 files:28 parent postimages remain byte-identical, four existing files have narrow business/inventory/filter edits, and six application/test files are added to the capsule. The full-suite forecast is433 (retained375 plus58 new cases); it is not an executed result. CountryService's separate current-main correction remains a separate repository slice and retains the original CountryService ledger owner.
