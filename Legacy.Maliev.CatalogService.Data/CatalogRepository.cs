@@ -40,9 +40,20 @@ public sealed class CatalogRepository(
         var context = ContextFor<TEntity>();
         if (entity is Material material)
         {
-            await catalogDbContext.MaterialHasColors.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(cancellationToken);
-            await catalogDbContext.MaterialHasSuppliers.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(cancellationToken);
-            await catalogDbContext.MaterialHasSurfaceFinishes.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(cancellationToken);
+            catalogDbContext.Materials.Remove(material);
+            await catalogDbContext.Database.CreateExecutionStrategy().ExecuteAsync(async token =>
+            {
+                await using var transaction = await catalogDbContext.Database.BeginTransactionAsync(token);
+                await catalogDbContext.MaterialHasColors.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(token);
+                await catalogDbContext.MaterialHasSuppliers.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(token);
+                await catalogDbContext.MaterialHasSurfaceFinishes.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(token);
+                // Keep Deleted state until commit succeeds so a rolled-back attempt can be replayed.
+                await catalogDbContext.SaveChangesAsync(acceptAllChangesOnSuccess: false, cancellationToken: token);
+                await transaction.CommitAsync(token);
+            }, cancellationToken);
+            // An ambiguous commit replay must still delete the tracked row; a missing row fails concurrency.
+            catalogDbContext.ChangeTracker.AcceptAllChanges();
+            return;
         }
 
         context.Set<TEntity>().Remove(entity);
