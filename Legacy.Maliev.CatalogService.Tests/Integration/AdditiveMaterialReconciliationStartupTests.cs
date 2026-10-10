@@ -227,7 +227,14 @@ public sealed class AdditiveMaterialReconciliationStartupTests(AdditiveMaterialS
         Assert.True(material.GetProperty("Printable").GetBoolean());
         Assert.False(material.GetProperty("Machinable").GetBoolean());
         Assert.Equal(density, material.GetProperty("DensityKilogramPerCubicMeter").GetDecimal());
-        Assert.Equal("Plastics", material.GetProperty("MaterialGroup").GetProperty("Name").GetString());
+        Assert.False(material.TryGetProperty("MaterialGroup", out _));
+        using var pageResponse = await client.GetAsync("/materials?sort=MaterialId_Ascending");
+        Assert.Equal(HttpStatusCode.OK, pageResponse.StatusCode);
+        using var pageDocument = JsonDocument.Parse(await pageResponse.Content.ReadAsStringAsync());
+        JsonElement paginated = Assert.Single(pageDocument.RootElement.GetProperty("Items").EnumerateArray(),
+            row => row.GetProperty("Id").GetInt32() == material.GetProperty("Id").GetInt32());
+        Assert.Equal(material.GetProperty("MaterialGroupId").GetInt32(), paginated.GetProperty("MaterialGroupId").GetInt32());
+        Assert.Equal("Plastics", paginated.GetProperty("MaterialGroup").GetProperty("Name").GetString());
     }
 
     [Theory]
