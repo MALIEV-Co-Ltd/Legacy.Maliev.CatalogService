@@ -117,7 +117,7 @@ public sealed record MaterialResponse(
 
 /// <summary>Legacy-compatible material create or update payload.</summary>
 public sealed record UpsertMaterialRequest(
-    int MaterialGroupId,
+    [property: JsonConverter(typeof(LegacyMaterialGroupIdJsonConverter))] int MaterialGroupId,
     [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Machinable,
     [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Printable,
     [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name,

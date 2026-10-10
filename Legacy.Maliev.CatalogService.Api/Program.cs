@@ -40,6 +40,7 @@ builder.Services.Configure<Microsoft.AspNetCore.OpenApi.OpenApiOptions>("v1", op
 });
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.OpenApi.OpenApiOptions>, Legacy.Maliev.CatalogService.Api.OpenApi.MaterialStringSchemaOptions>();
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.OpenApi.OpenApiOptions>, Legacy.Maliev.CatalogService.Api.OpenApi.MaterialPhysicalDecimalSchemaOptions>();
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.OpenApi.OpenApiOptions>, Legacy.Maliev.CatalogService.Api.OpenApi.MaterialCoreControlSchemaOptions>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
@@ -49,6 +50,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
+    options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyMaterialRequestJsonConverter());
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     options.JsonSerializerOptions.PropertyNamingPolicy = null;
     options.JsonSerializerOptions.DictionaryKeyPolicy = null;
