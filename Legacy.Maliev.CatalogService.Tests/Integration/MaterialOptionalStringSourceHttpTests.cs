@@ -249,8 +249,7 @@ public sealed class MaterialOptionalStringSourceHttpTests(CatalogHttpFixture fix
         using (var prime = await client.GetAsync("/Materials")) Assert.Equal(HttpStatusCode.OK, prime.StatusCode);
         using (var prime = await client.GetAsync(url))
         {
-            Assert.Equal(HttpStatusCode.OK, prime.StatusCode);
-            Assert.Empty((await ReadAsync(prime)).GetProperty("Items").EnumerateArray());
+            Assert.Equal(HttpStatusCode.NotFound, prime.StatusCode);
         }
         payload[propertyName] = numeric ? JsonSerializer.Deserialize<JsonElement>(text) : text;
         using (var update = await client.PutAsJsonAsync($"/Materials/{id}", payload)) Assert.Equal(HttpStatusCode.NoContent, update.StatusCode);
