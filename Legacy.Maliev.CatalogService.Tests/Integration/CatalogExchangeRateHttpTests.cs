@@ -86,7 +86,7 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
         using var response = await client.GetAsync("/currencies/exchangerates?baseCurrency=%20thb%20&targetCurrency=usd");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(1, calls);
-        Assert.Equal("?amount=1&from=THB&to=USD", query);
+        Assert.Equal("?amount=1&from=%20thb%20&to=usd", query);
         using var wire = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("THB", wire.RootElement.GetProperty("Base").GetString());
         Assert.Equal(new DateTime(2026, 10, 3), wire.RootElement.GetProperty("Date").GetDateTime());
@@ -130,6 +130,23 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.True(calls >= 1);
         Assert.DoesNotContain("provider-internal-sentinel", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("thb", "usd", "?amount=1&from=thb&to=usd")]
+    [InlineData(" thb ", " usd ", "?amount=1&from=%20thb%20&to=%20usd%20")]
+    [InlineData("tHb", "uSd", "?amount=1&from=tHb&to=uSd")]
+    [InlineData("THB", "USD", "?amount=1&from=THB&to=USD")]
+    public async Task Route_SourceCurrencyLiterals_ReachRealProviderWithoutNormalization(string from, string to, string expectedQuery)
+    {
+        using var client = Client("legacy-catalog.currencies.read");
+        using var response = await client.GetAsync($"/currencies/exchangerates?baseCurrency={Uri.EscapeDataString(from)}&targetCurrency={Uri.EscapeDataString(to)}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(1, calls);
+        Assert.Equal(expectedQuery, query);
+        using var wire = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("THB", wire.RootElement.GetProperty("Base").GetString());
+        Assert.Equal("0.03081001", wire.RootElement.GetProperty("Rates").GetProperty("USD").GetString());
     }
 
     private HttpClient Client(string? permission)

@@ -19,7 +19,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<CountryResponse>> GetCountriesAsync(CancellationToken cancellationToken) =>
-        (await GetListAsync<Country, CountryResponse>(CountriesCacheKey, ToResponse, cancellationToken))
+        (await GetRepositoryListAsync<Country, CountryResponse>(ToResponse, cancellationToken))
             .OrderBy(country => country.Name).ToArray();
 
     /// <inheritdoc />
@@ -50,7 +50,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<CurrencyResponse>> GetCurrenciesAsync(CancellationToken cancellationToken) =>
-        await GetListAsync<Currency, CurrencyResponse>(CurrenciesCacheKey, ToResponse, cancellationToken);
+        await GetRepositoryListAsync<Currency, CurrencyResponse>(ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<CurrencyResponse?> GetCurrencyAsync(int id, CancellationToken cancellationToken) =>

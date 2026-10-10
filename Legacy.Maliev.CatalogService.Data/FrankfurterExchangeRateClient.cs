@@ -11,8 +11,8 @@ public sealed class FrankfurterExchangeRateClient(HttpClient httpClient) : IExch
     /// <inheritdoc />
     public async Task<ExchangeRateResponse> GetLatestAsync(string baseCurrency, string targetCurrency, CancellationToken cancellationToken)
     {
-        var from = Uri.EscapeDataString(baseCurrency.Trim().ToUpperInvariant());
-        var to = Uri.EscapeDataString(targetCurrency.Trim().ToUpperInvariant());
+        var from = Uri.EscapeDataString(baseCurrency);
+        var to = Uri.EscapeDataString(targetCurrency);
         using var response = await httpClient.GetAsync($"latest?amount=1&from={from}&to={to}", cancellationToken);
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
