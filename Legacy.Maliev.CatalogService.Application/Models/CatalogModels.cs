@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Legacy.Maliev.CatalogService.Application.Models;
 
@@ -117,8 +118,8 @@ public sealed record MaterialResponse(
 /// <summary>Legacy-compatible material create or update payload.</summary>
 public sealed record UpsertMaterialRequest(
     int MaterialGroupId,
-    bool Machinable,
-    bool Printable,
+    [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Machinable,
+    [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Printable,
     [Required, MaxLength(50)] string Name,
     string? Aisi,
     string? Din,
