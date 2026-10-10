@@ -302,7 +302,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
             stored.Name = "Stored-only change";
             await context.SaveChangesAsync();
         }
-        using var invalid = await client.PutAsJsonAsync($"/materials/Colors/{id}", new { Name = " " });
+        using var invalid = await client.PutAsJsonAsync($"/materials/Colors/{id}", new { Name = new string('x', 51) });
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
         Assert.Equal("Stored-only change", (await fixture.StoredAsync("colors", id)).GetProperty("Name").GetString());
         using var authoritative = await client.GetAsync("/materials/Colors");

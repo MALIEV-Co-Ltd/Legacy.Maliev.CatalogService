@@ -24,7 +24,10 @@ The new HTTP/PostgreSQL test class contains 34 executions: 24 literal cases
 two material missing-parent rollback controls, and four omitted-name controls.
 The existing six required-field executions retain their names and multiplicities:
 country/currency still reject empty and blank names; material resources keep
-their null rejection. The shared fixture body remains unchanged. Full execution
+their null rejection. The existing invalid-update cache/read test now uses a
+51-character color name because a blank name is accepted by this source repair;
+its rejection, persistence and authoritative-read assertions remain intact.
+The shared fixture body remains unchanged. Full execution
 forecast increases from 491 to 525; original 20 diagnostics, immutable raw
 exports/receipt, owned 80% coverage floor and zero-exclusion policy remain intact.
 
