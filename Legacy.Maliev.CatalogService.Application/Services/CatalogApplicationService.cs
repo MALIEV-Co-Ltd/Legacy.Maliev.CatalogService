@@ -189,7 +189,7 @@ public sealed class CatalogApplicationService(
         var pageIndex = Math.Max(index ?? 1, 1);
         var pageSize = Math.Max(size ?? materialArray.Length, 1);
         var totalPages = materialArray.Length == 0 ? 0 : (int)Math.Ceiling(materialArray.Length / (double)pageSize);
-        var items = materialArray.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToArray();
+        var items = size == 0 ? Array.Empty<MaterialResponse>() : materialArray.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToArray();
         return new(items, pageIndex, totalPages, materialArray.Length, pageIndex < totalPages, pageIndex > 1);
     }
 
