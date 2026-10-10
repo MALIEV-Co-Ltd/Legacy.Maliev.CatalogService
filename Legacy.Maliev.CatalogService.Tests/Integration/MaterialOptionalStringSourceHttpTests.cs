@@ -15,16 +15,16 @@ public sealed class MaterialOptionalStringSourceHttpTests(CatalogHttpFixture fix
     private static readonly (string Field, int Maximum)[] Fields =
         [("Aisi", 50), ("Din", 50), ("Bts", 50), ("Jis", 50), ("Uns", 50), ("En", 50), ("Afnor", 50), ("Uni", 50), ("Sis", 50), ("Sae", 50), ("Astm", 50), ("Ams", 50), ("MaterialNumber", 50), ("ManufacturerReference", 50), ("Url", 0), ("Comment", 0)];
 
-    public static TheoryData<string, string?, string?, bool, bool> AcceptedCases
+    public static TheoryData<string, string?, string?, bool, bool, int> AcceptedCases
     {
         get
         {
-            var data = new TheoryData<string, string?, string?, bool, bool>();
+            var data = new TheoryData<string, string?, string?, bool, bool, int>();
             foreach (var (propertyName, _) in Fields)
             {
                 foreach (var raw in new[] { "true", "false", "0", "-0", "0.0", "-0.0", "0.125", "1e+03", "1e309", "1e-400" })
                     foreach (var update in new[] { false, true })
-                        data.Add(propertyName, raw, raw, false, update);
+                        data.Add(propertyName, raw, raw, false, update, raw.Length);
                 foreach (var (raw, expected, omit) in new (string?, string?, bool)[]
                 {
                     ("null", null, false), (null, null, true),
@@ -37,18 +37,18 @@ public sealed class MaterialOptionalStringSourceHttpTests(CatalogHttpFixture fix
                     (JsonSerializer.Serialize(" x"), " x", false),
                 })
                     foreach (var update in new[] { false, true })
-                        data.Add(propertyName, raw, expected, omit, update);
+                        data.Add(propertyName, raw, expected, omit, update, raw?.Length ?? -1);
             }
             foreach (var (propertyName, maximum) in Fields)
                 foreach (var update in new[] { false, true })
                     if (maximum == 50)
-                        data.Add(propertyName, JsonSerializer.Serialize(new string('x', 50)), new string('x', 50), false, update);
+                        data.Add(propertyName, JsonSerializer.Serialize(new string('x', 50)), new string('x', 50), false, update, 52);
                     else
                         foreach (var length in new[] { 51, 1024 })
                             foreach (var numeric in new[] { false, true })
                             {
                                 var value = new string('9', length);
-                                data.Add(propertyName, numeric ? value : JsonSerializer.Serialize(value), value, false, update);
+                                data.Add(propertyName, numeric ? value : JsonSerializer.Serialize(value), value, false, update, numeric ? length : length + 2);
                             }
             return data;
         }
@@ -66,8 +66,9 @@ public sealed class MaterialOptionalStringSourceHttpTests(CatalogHttpFixture fix
 
     [Theory]
     [MemberData(nameof(AcceptedCases))]
-    public async Task OptionalMaterialStringScalarAndLiteral_CreateAndUpdate_PreserveNullAndGraph(string propertyName, string? raw, string? expected, bool omit, bool update)
+    public async Task OptionalMaterialStringScalarAndLiteral_CreateAndUpdate_PreserveNullAndGraph(string propertyName, string? raw, string? expected, bool omit, bool update, int rawTokenLength)
     {
+        Assert.Equal(raw?.Length ?? -1, rawTokenLength);
         await SeedAsync();
         using var client = fixture.CreateClient("legacy-catalog.materials.create", "legacy-catalog.materials.update", "legacy-catalog.materials.read");
         var sentinels = await SentinelSnapshotAsync();
