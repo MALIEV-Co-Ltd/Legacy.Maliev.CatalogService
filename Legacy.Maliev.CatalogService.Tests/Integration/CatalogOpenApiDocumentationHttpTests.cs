@@ -102,6 +102,7 @@ public sealed class CatalogOpenApiDocumentationHttpTests
                 Assert.StartsWith("#/components/schemas/", value);
                 schema = root.GetProperty("components").GetProperty("schemas").GetProperty(value[(value.LastIndexOf('/') + 1)..]);
             }
+            Assert.Collection(schema.GetProperty("required").EnumerateArray(), required => Assert.Equal("Name", required.GetString()));
             foreach (var propertyName in new[] { "Continent", "CountryCode", "Iso2", "Iso3" })
             {
                 var property = schema.GetProperty("properties").GetProperty(propertyName);

@@ -48,7 +48,7 @@ public enum MaterialSortType
 public sealed record CountryResponse(int Id, string Name, string? Continent, string? CountryCode, string? Iso2, string? Iso3, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible country create or update payload.</summary>
-public sealed record UpsertCountryRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(50)] string? Continent, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(30)] string? CountryCode, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(2)] string? Iso2, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(3)] string? Iso3);
+public sealed record UpsertCountryRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(50)] string? Continent = null, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(30)] string? CountryCode = null, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(2)] string? Iso2 = null, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(3)] string? Iso3 = null);
 
 /// <summary>Legacy-compatible currency response.</summary>
 public sealed record CurrencyResponse(int Id, string ShortName, string LongName, DateTime? CreatedDate, DateTime? ModifiedDate);
