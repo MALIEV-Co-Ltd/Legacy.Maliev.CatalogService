@@ -13,9 +13,17 @@ public sealed class WorkflowContractTests
     private static readonly string ApiProgram = File.ReadAllText(
         FindRepositoryFile("Legacy.Maliev.CatalogService.Api", "Program.cs"));
 
+    private static void BuildAndTest_RejectsPreviousUploadArtifactPin()
+    {
+        var previousPin = Workflow.Replace("actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", StringComparison.Ordinal);
+        Assert.NotEqual(Workflow, previousPin);
+        Assert.Throws<InvalidOperationException>(() => WorkflowContractValidator.Validate(previousPin));
+    }
+
     [Fact]
     public void BuildAndTest_SatisfiesStructuralContract()
     {
+        BuildAndTest_RejectsPreviousUploadArtifactPin();
         WorkflowContractValidator.Validate(Workflow);
         AssertMutationRejected("      CATALOG_SOURCE_DIAGNOSTIC_OUTPUT_DIRECTORY: ${{ github.workspace }}/runner-results/country-health-diagnostics\n", "");
         AssertMutationRejected("      - name: Verify full 367 executions and original Country/health diagnostic exports\n        run: python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports\n", "");
@@ -300,7 +308,7 @@ internal static partial class WorkflowContractValidator
         if (artifact.Children.Count != 4) throw new InvalidOperationException("Evidence retention must remain unconditional.");
         RequireScalarValue(artifact, "name", "Preserve validation evidence");
         RequireScalarValue(artifact, "if", "always()");
-        RequireScalarValue(artifact, "uses", "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
+        RequireScalarValue(artifact, "uses", "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a");
         var retention = RequireMapping(artifact, "with");
         if (retention.Children.Count != 4) throw new InvalidOperationException("Evidence inputs must remain exact.");
         RequireScalarValue(retention, "name", "catalog-validation-${{ github.sha }}");
