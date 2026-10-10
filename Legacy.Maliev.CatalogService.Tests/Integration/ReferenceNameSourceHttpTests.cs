@@ -16,10 +16,10 @@ public sealed class ReferenceNameSourceHttpTests(CatalogHttpFixture fixture) : I
         get
         {
             var data = new TheoryData<string, string, string, string, bool>();
-            foreach (var (route, resource, field) in Fields)
+            foreach (var (route, resource, propertyName) in Fields)
                 foreach (var name in new[] { "", " \t ", "  Baht  " })
                     foreach (var update in new[] { false, true })
-                        data.Add(route, resource, field, name, update);
+                        data.Add(route, resource, propertyName, name, update);
             return data;
         }
     }
