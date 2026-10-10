@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text.Json;
+using Legacy.Maliev.CatalogService.Application.Interfaces;
 using Legacy.Maliev.CatalogService.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Legacy.Maliev.CatalogService.Tests.Integration;
 
@@ -36,11 +38,21 @@ public sealed class MaterialAssociationExistenceSourceHttpTests(MaterialCollecti
         var before = await GraphAsync();
         using var host = fixture.Start();
         using var client = fixture.Client(host);
+        using var scope = host.Services.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            if (family == "colors") await repository.FindMaterialColorAsync(1, 1, default);
+            else await repository.FindMaterialSurfaceFinishAsync(1, 1, default);
+        });
         foreach (var verb in new[] { HttpMethod.Get, HttpMethod.Delete })
         {
             using var request = new HttpRequestMessage(verb, $"/materials/1/{family}/1");
             using var response = await client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            using var error = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.Equal(400, error.RootElement.GetProperty("statusCode").GetInt32());
+            Assert.Equal("The request cannot be processed.", error.RootElement.GetProperty("error").GetString());
             Assert.Equal(before, await GraphAsync());
         }
     }
