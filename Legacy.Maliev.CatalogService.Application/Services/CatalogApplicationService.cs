@@ -199,11 +199,11 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialResponse>> GetMachinableMaterialsAsync(CancellationToken cancellationToken) =>
-        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Machinable).ToArray();
+        (await GetRepositoryListAsync<Material, MaterialResponse>(ToResponse, cancellationToken)).Where(material => material.Machinable).ToArray();
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialResponse>> GetPrintableMaterialsAsync(CancellationToken cancellationToken) =>
-        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Printable).ToArray();
+        (await GetRepositoryListAsync<Material, MaterialResponse>(ToResponse, cancellationToken)).Where(material => material.Printable).ToArray();
 
     /// <inheritdoc />
     public async Task<MaterialResponse> CreateMaterialAsync(UpsertMaterialRequest request, CancellationToken cancellationToken)
