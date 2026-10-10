@@ -39,6 +39,7 @@ builder.Services.Configure<Microsoft.AspNetCore.OpenApi.OpenApiOptions>("v1", op
     });
 });
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.OpenApi.OpenApiOptions>, Legacy.Maliev.CatalogService.Api.OpenApi.MaterialStringSchemaOptions>();
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.OpenApi.OpenApiOptions>, Legacy.Maliev.CatalogService.Api.OpenApi.MaterialPhysicalDecimalSchemaOptions>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;

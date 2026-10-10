@@ -4,6 +4,10 @@
     <ProjectReference Include="..\Legacy.Maliev.CatalogService.Domain\Legacy.Maliev.CatalogService.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
