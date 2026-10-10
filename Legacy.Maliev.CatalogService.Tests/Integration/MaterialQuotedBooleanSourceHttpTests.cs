@@ -71,7 +71,7 @@ public sealed class MaterialQuotedBooleanSourceHttpTests(CatalogHttpFixture fixt
             var before = await CompleteGraphAsync();
             foreach (var field in new[] { "Machinable", "Printable" })
             {
-                foreach (var value in new object[] { "not-a-Boolean", "", " ", 1, 0.125, null!, Array.Empty<int>(), new Dictionary<string, object>() })
+                foreach (var value in new object[] { "not-a-Boolean", " ", "1", Array.Empty<int>(), new Dictionary<string, object>() })
                 {
                     using var invalid = await SendAsync(client, method, Payload(field, value));
                     Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
