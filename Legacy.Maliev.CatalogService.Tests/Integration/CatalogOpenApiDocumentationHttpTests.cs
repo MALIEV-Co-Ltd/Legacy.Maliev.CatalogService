@@ -81,6 +81,41 @@ public sealed class CatalogOpenApiDocumentationHttpTests
         fixture.AssertNoDatabaseWork();
     }
 
+    [Fact]
+    public async Task Development_document_keeps_selected_request_names_as_strings_for_clients()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var fixture = new CatalogDocumentationHost("Development");
+        using var client = fixture.Host.CreateClient();
+        using var response = await client.GetAsync("/catalog/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        foreach (var (route, field) in new[]
+        {
+            ("/Countries", "Name"), ("/Currencies", "ShortName"), ("/Currencies", "LongName"),
+            ("/materials/MaterialGroups", "Name"), ("/materials/Colors", "Name"),
+            ("/materials/SurfaceFinishes", "Name"), ("/Materials", "Name"),
+        })
+            foreach (var method in new[] { "post", "put" })
+            {
+                var path = method == "post" ? route : route + "/{id}";
+                var schema = root.GetProperty("paths").GetProperty(path).GetProperty(method)
+                    .GetProperty("requestBody").GetProperty("content").GetProperty("application/json").GetProperty("schema");
+                while (schema.TryGetProperty("$ref", out var reference))
+                {
+                    var value = reference.GetString()!;
+                    Assert.StartsWith("#/components/schemas/", value);
+                    schema = root.GetProperty("components").GetProperty("schemas").GetProperty(value[(value.LastIndexOf('/') + 1)..]);
+                }
+                var names = schema.GetProperty("properties");
+                Assert.True(names.TryGetProperty(field, out var name));
+                Assert.Equal("string", name.GetProperty("type").GetString());
+                Assert.Contains(schema.GetProperty("required").EnumerateArray(), property => property.GetString() == field);
+            }
+        fixture.AssertNoDatabaseWork();
+    }
+
     private static void AssertCatalogDocumentInfo(JsonElement document)
     {
         var info = document.GetProperty("info");

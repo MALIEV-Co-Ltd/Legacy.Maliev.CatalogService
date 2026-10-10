@@ -48,31 +48,31 @@ public enum MaterialSortType
 public sealed record CountryResponse(int Id, string Name, string? Continent, string? CountryCode, string? Iso2, string? Iso3, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible country create or update payload.</summary>
-public sealed record UpsertCountryRequest([Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [MaxLength(50)] string? Continent, [MaxLength(30)] string? CountryCode, [MaxLength(2)] string? Iso2, [MaxLength(3)] string? Iso3);
+public sealed record UpsertCountryRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [MaxLength(50)] string? Continent, [MaxLength(30)] string? CountryCode, [MaxLength(2)] string? Iso2, [MaxLength(3)] string? Iso3);
 
 /// <summary>Legacy-compatible currency response.</summary>
 public sealed record CurrencyResponse(int Id, string ShortName, string LongName, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible currency create or update payload.</summary>
-public sealed record UpsertCurrencyRequest([Required(AllowEmptyStrings = true), MaxLength(10)] string ShortName, [Required(AllowEmptyStrings = true), MaxLength(50)] string LongName);
+public sealed record UpsertCurrencyRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(10)] string ShortName, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string LongName);
 
 /// <summary>Legacy-compatible material group response.</summary>
 public sealed record MaterialGroupResponse(int Id, string Name, string? Description, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible material group payload.</summary>
-public sealed record UpsertMaterialGroupRequest([Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [MaxLength(50)] string? Description);
+public sealed record UpsertMaterialGroupRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [MaxLength(50)] string? Description);
 
 /// <summary>Legacy-compatible color response.</summary>
 public sealed record ColorResponse(int Id, string Name, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible color payload.</summary>
-public sealed record UpsertColorRequest([Required(AllowEmptyStrings = true), MaxLength(50)] string Name);
+public sealed record UpsertColorRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name);
 
 /// <summary>Legacy-compatible surface finish response.</summary>
 public sealed record SurfaceFinishResponse(int Id, string Name, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible surface finish payload.</summary>
-public sealed record UpsertSurfaceFinishRequest([Required(AllowEmptyStrings = true), MaxLength(50)] string Name);
+public sealed record UpsertSurfaceFinishRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name);
 
 /// <summary>Legacy-compatible material response.</summary>
 public sealed record MaterialResponse(
@@ -120,7 +120,7 @@ public sealed record UpsertMaterialRequest(
     int MaterialGroupId,
     [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Machinable,
     [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Printable,
-    [Required(AllowEmptyStrings = true), MaxLength(50)] string Name,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name,
     string? Aisi,
     string? Din,
     string? Bts,

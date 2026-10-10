@@ -27,6 +27,15 @@ builder.AddStandardOpenApi(
     description: "Temporary .NET 10 compatibility service preserving legacy country, currency, and material API contracts.");
 // The application-owned literal call activates its generated XML documentation transformers.
 builder.Services.AddOpenApi("v1");
+builder.Services.Configure<Microsoft.AspNetCore.OpenApi.OpenApiOptions>("v1", options =>
+{
+    options.AddSchemaTransformer((schema, context, _) =>
+    {
+        if (context.JsonPropertyInfo?.CustomConverter is Legacy.Maliev.CatalogService.Application.Models.LegacyScalarStringJsonConverter)
+            schema.Type = Microsoft.OpenApi.JsonSchemaType.String;
+        return Task.CompletedTask;
+    });
+});
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
