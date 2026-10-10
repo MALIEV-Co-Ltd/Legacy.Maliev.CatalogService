@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Legacy.Maliev.CatalogService.Api.Logging;
 using System.Threading.RateLimiting;
 using Legacy.Maliev.CatalogService.Application.Lookups;
 using Legacy.Maliev.CatalogService.Api.Lookups;
@@ -14,6 +15,7 @@ using Maliev.Aspire.ServiceDefaults;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.Logging.AddCatalogPrivateDiagnostics();
 builder.AddDefaultApiVersioning();
 builder.AddPostgresDbContext<CatalogDbContext>(connectionName: "CatalogDbContext");
 builder.AddPostgresDbContext<CatalogCountryDbContext>(connectionName: "CountryDbContext");
