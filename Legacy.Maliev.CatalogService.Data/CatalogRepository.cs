@@ -58,6 +58,10 @@ public sealed class CatalogRepository(
         await catalogDbContext.MaterialHasSuppliers.Where(link => link.MaterialId == materialId).AsNoTracking().ToArrayAsync(cancellationToken);
 
     /// <inheritdoc />
+    public Task<bool> MaterialColorExistsAsync(int materialId, int colorId, CancellationToken cancellationToken) =>
+        catalogDbContext.MaterialHasColors.AnyAsync(link => link.MaterialId == materialId && link.ColorId == colorId, cancellationToken);
+
+    /// <inheritdoc />
     public Task<MaterialHasColor?> FindMaterialColorAsync(int materialId, int colorId, CancellationToken cancellationToken) =>
         catalogDbContext.MaterialHasColors.SingleOrDefaultAsync(link => link.MaterialId == materialId && link.ColorId == colorId, cancellationToken);
 
@@ -65,6 +69,10 @@ public sealed class CatalogRepository(
     public async Task<IReadOnlyList<Color>> ListMaterialColorsAsync(int materialId, CancellationToken cancellationToken) =>
         await catalogDbContext.MaterialHasColors.Where(link => link.MaterialId == materialId)
             .Select(link => link.Color!).AsNoTracking().ToArrayAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> MaterialSurfaceFinishExistsAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken) =>
+        catalogDbContext.MaterialHasSurfaceFinishes.AnyAsync(link => link.MaterialId == materialId && link.SurfaceFinishId == surfaceFinishId, cancellationToken);
 
     /// <inheritdoc />
     public Task<MaterialHasSurfaceFinish?> FindMaterialSurfaceFinishAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken) =>
