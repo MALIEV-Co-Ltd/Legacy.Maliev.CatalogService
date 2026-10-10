@@ -84,11 +84,13 @@ public sealed class MaterialPhysicalDecimalSourceHttpTests(CatalogHttpFixture fi
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             var body = await ReadAsync(response);
             id = body.GetProperty("Id").GetInt32();
-            AssertWireValue(body, propertyName, expected);
+            AssertWireValue(body, propertyName, parsed);
             Assert.NotNull(response.Headers.Location);
             using var location = await client.GetAsync(response.Headers.Location);
             Assert.Equal(HttpStatusCode.OK, location.StatusCode);
-            Assert.Equal(id, (await ReadAsync(location)).GetProperty("Id").GetInt32());
+            var persistedLocation = await ReadAsync(location);
+            Assert.Equal(id, persistedLocation.GetProperty("Id").GetInt32());
+            AssertWireValue(persistedLocation, propertyName, expected);
         }
         using var detail = await client.GetAsync($"/Materials/{id}");
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
