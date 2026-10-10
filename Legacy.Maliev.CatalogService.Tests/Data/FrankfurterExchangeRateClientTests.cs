@@ -23,7 +23,7 @@ public sealed class FrankfurterExchangeRateClientTests
 
         var result = await exchangeRates.GetLatestAsync(" thb ", "usd", CancellationToken.None);
 
-        Assert.Equal("https://api.frankfurter.app/latest?amount=1&from=THB&to=USD", requestedUri?.AbsoluteUri);
+        Assert.Equal("https://api.frankfurter.app/latest?amount=1&from=%20thb%20&to=usd", requestedUri?.AbsoluteUri);
         Assert.Equal("THB", result.Base);
         Assert.Equal("0.03081", result.Rates["USD"]);
     }

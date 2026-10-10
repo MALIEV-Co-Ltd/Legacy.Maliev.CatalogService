@@ -24,9 +24,11 @@ public sealed class CatalogApplicationServiceTests
     }
 
     [Fact]
-    public async Task GetCountriesAsync_CacheHit_DoesNotQueryRepository()
+    public async Task GetCountriesAsync_StaleCache_ReturnsOwningRepositoryState()
     {
         var repository = new Mock<ICatalogRepository>(MockBehavior.Strict);
+        repository.Setup(value => value.ListAsync<Country>(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new Country { Id = 1, Name = "Japan" }]);
         var cache = new Mock<ICatalogCache>();
         cache.Setup(value => value.GetAsync<CountryResponse[]>("countries:all:v1", It.IsAny<CancellationToken>()))
             .ReturnsAsync([new CountryResponse(1, "Thailand", null, null, null, null, null, null)]);
@@ -34,8 +36,10 @@ public sealed class CatalogApplicationServiceTests
 
         var countries = await service.GetCountriesAsync(CancellationToken.None);
 
-        Assert.Equal("Thailand", Assert.Single(countries).Name);
+        Assert.Equal("Japan", Assert.Single(countries).Name);
+        repository.Verify(value => value.ListAsync<Country>(It.IsAny<CancellationToken>()), Times.Once);
         repository.VerifyNoOtherCalls();
+        cache.VerifyNoOtherCalls();
     }
 
     [Fact]
