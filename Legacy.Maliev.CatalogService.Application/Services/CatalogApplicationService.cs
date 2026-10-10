@@ -244,7 +244,7 @@ public sealed class CatalogApplicationService(
     /// <inheritdoc />
     public async Task<MaterialColorResponse?> CreateMaterialColorAsync(int materialId, int colorId, CancellationToken cancellationToken)
     {
-        if (await repository.FindMaterialColorAsync(materialId, colorId, cancellationToken) is not null) return null;
+        if (await repository.MaterialColorExistsAsync(materialId, colorId, cancellationToken)) return null;
         var now = UtcNow;
         var link = new MaterialHasColor { MaterialId = materialId, ColorId = colorId, CreatedDate = now, ModifiedDate = now };
         await AddAsync(link, cancellationToken);
@@ -274,7 +274,7 @@ public sealed class CatalogApplicationService(
     /// <inheritdoc />
     public async Task<MaterialSurfaceFinishResponse?> CreateMaterialSurfaceFinishAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken)
     {
-        if (await repository.FindMaterialSurfaceFinishAsync(materialId, surfaceFinishId, cancellationToken) is not null) return null;
+        if (await repository.MaterialSurfaceFinishExistsAsync(materialId, surfaceFinishId, cancellationToken)) return null;
         var now = UtcNow;
         var link = new MaterialHasSurfaceFinish { MaterialId = materialId, SurfaceFinishId = surfaceFinishId, CreatedDate = now, ModifiedDate = now };
         await AddAsync(link, cancellationToken);

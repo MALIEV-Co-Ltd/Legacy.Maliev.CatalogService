@@ -26,11 +26,17 @@ public interface ICatalogRepository
     /// <summary>Returns material supplier links.</summary>
     Task<IReadOnlyList<MaterialHasSupplier>> ListMaterialSuppliersAsync(int materialId, CancellationToken cancellationToken);
 
+    /// <summary>Returns whether any material-color link exists for the pair.</summary>
+    Task<bool> MaterialColorExistsAsync(int materialId, int colorId, CancellationToken cancellationToken);
+
     /// <summary>Returns a material-color link.</summary>
     Task<MaterialHasColor?> FindMaterialColorAsync(int materialId, int colorId, CancellationToken cancellationToken);
 
     /// <summary>Returns colors linked to a material.</summary>
     Task<IReadOnlyList<Color>> ListMaterialColorsAsync(int materialId, CancellationToken cancellationToken);
+
+    /// <summary>Returns whether any material-surface-finish link exists for the pair.</summary>
+    Task<bool> MaterialSurfaceFinishExistsAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken);
 
     /// <summary>Returns a material-surface-finish link.</summary>
     Task<MaterialHasSurfaceFinish?> FindMaterialSurfaceFinishAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken);
