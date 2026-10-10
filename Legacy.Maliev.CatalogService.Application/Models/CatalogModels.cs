@@ -60,7 +60,7 @@ public sealed record UpsertCurrencyRequest([property: JsonConverter(typeof(Legac
 public sealed record MaterialGroupResponse(int Id, string Name, string? Description, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible material group payload.</summary>
-public sealed record UpsertMaterialGroupRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [MaxLength(50)] string? Description);
+public sealed record UpsertMaterialGroupRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(50)] string? Description = null);
 
 /// <summary>Legacy-compatible color response.</summary>
 public sealed record ColorResponse(int Id, string Name, DateTime? CreatedDate, DateTime? ModifiedDate);
