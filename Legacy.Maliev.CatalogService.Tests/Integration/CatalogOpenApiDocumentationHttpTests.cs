@@ -195,9 +195,9 @@ public sealed class CatalogOpenApiDocumentationHttpTests
         using var beforeFixture = new CatalogDocumentationHost("Development");
         using var beforeFactory = beforeFixture.Host.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
-            var registration = Assert.Single(services.Where(descriptor =>
+            var registration = Assert.Single(services, descriptor =>
                 descriptor.ServiceType == typeof(Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.OpenApi.OpenApiOptions>) &&
-                descriptor.ImplementationType == typeof(Legacy.Maliev.CatalogService.Api.OpenApi.MaterialStringSchemaOptions)));
+                descriptor.ImplementationType == typeof(Legacy.Maliev.CatalogService.Api.OpenApi.MaterialStringSchemaOptions));
             services.Remove(registration);
         }));
         using var beforeClient = beforeFactory.CreateClient();
