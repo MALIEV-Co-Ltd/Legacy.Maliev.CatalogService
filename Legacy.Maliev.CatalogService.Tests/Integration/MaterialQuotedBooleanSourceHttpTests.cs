@@ -92,7 +92,8 @@ public sealed class MaterialQuotedBooleanSourceHttpTests(CatalogHttpFixture fixt
 
     private static Dictionary<string, object> Payload(string field, object value) => new()
     {
-        ["MaterialGroupId"] = 1, ["Name"] = LiteralName,
+        ["MaterialGroupId"] = 1,
+        ["Name"] = LiteralName,
         ["Machinable"] = field == "Machinable" ? value : (object)true,
         ["Printable"] = field == "Printable" ? value : (object)true,
     };
