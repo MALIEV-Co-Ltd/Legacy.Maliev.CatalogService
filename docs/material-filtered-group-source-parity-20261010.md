@@ -49,3 +49,13 @@ format/static/security/contracts and unchanged coverage gates. Fresh exact-main
 checks and original-artifact readback follow merge. This slice does not accept
 the whole source entry, authorize deployment or database cutover, or close
 other Material and joined consumer obligations.
+
+First draft head `503972662a00db4fc0c1c9d3a3851e5fb20bb3ae`, hosted run
+`38044613532`, built with zero warnings/errors and executed 375 tests: 373 passed
+and two failed. The failures were existing ESD startup-reconciliation consumers
+expecting the group object in the printable list. The correction retains their
+identity, flags and density assertions, requires the printable group omission,
+and verifies the original Plastics group assertion through the paginated row
+joined by the same material ID and group ID. No production startup/reconciliation
+behavior, test count or gate changes. The failed first run is retained;
+fresh corrected-head validation is required before acceptance.
