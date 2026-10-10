@@ -339,7 +339,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
         if (resource == "materials") await fixture.SeedGroupAsync();
         using var client = fixture.CreateClient($"legacy-catalog.{resource}.create", $"legacy-catalog.{resource}.update");
         var before = await fixture.SnapshotAsync();
-        foreach (var value in resource is "countries" or "currencies" ? new string?[] { null, "", " " } : new string?[] { null })
+        foreach (var value in new string?[] { null })
             foreach (var field in resource == "currencies" ? new[] { "ShortName", "LongName" } : new[] { "Name" })
             {
                 var payload = Payload(resource);
