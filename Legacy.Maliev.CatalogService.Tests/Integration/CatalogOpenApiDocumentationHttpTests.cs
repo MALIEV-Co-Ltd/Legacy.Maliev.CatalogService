@@ -230,10 +230,12 @@ public sealed class CatalogOpenApiDocumentationHttpTests
             var after = Select(afterDocument.RootElement);
             var beforeRequired = before.GetProperty("required").EnumerateArray().Select(value => value.GetString()!).ToArray();
             var afterRequired = after.GetProperty("required").EnumerateArray().Select(value => value.GetString()!).ToArray();
-            // The physical bundle removes its twelve requirements from both string comparison hosts.
-            Assert.Equal(method == "get" ? 26 : 22, beforeRequired.Length);
+            // The physical bundle and request core controls remain active in both string comparison hosts.
+            Assert.Equal(method == "get" ? 26 : 19, beforeRequired.Length);
             Assert.Equal(beforeRequired.Except(optional, StringComparer.Ordinal).Order(StringComparer.Ordinal), afterRequired.Order(StringComparer.Ordinal));
-            foreach (var propertyName in new[] { "Name", "MaterialGroupId", "Machinable", "Printable" }) Assert.Contains(propertyName, afterRequired);
+            Assert.Contains("Name", afterRequired);
+            foreach (var propertyName in new[] { "MaterialGroupId", "Machinable", "Printable" })
+                Assert.Equal(method == "get", afterRequired.Contains(propertyName, StringComparer.Ordinal));
             foreach (var propertyName in optional)
             {
                 Assert.Contains(propertyName, beforeRequired);
@@ -304,9 +306,11 @@ public sealed class CatalogOpenApiDocumentationHttpTests
             var after = Select(afterDocument.RootElement);
             var beforeRequired = before.GetProperty("required").EnumerateArray().Select(value => value.GetString()!).ToArray();
             var afterRequired = after.GetProperty("required").EnumerateArray().Select(value => value.GetString()!).ToArray();
-            Assert.Equal(method == "get" ? 22 : 18, beforeRequired.Length);
+            Assert.Equal(method == "get" ? 22 : 15, beforeRequired.Length);
             Assert.Equal(beforeRequired.Except(selected, StringComparer.Ordinal).Order(StringComparer.Ordinal), afterRequired.Order(StringComparer.Ordinal));
-            foreach (var propertyName in new[] { "Name", "MaterialGroupId", "Machinable", "Printable", "PricePerKilogram", "CurrencyId" }) Assert.Contains(propertyName, afterRequired);
+            foreach (var propertyName in new[] { "Name", "PricePerKilogram", "CurrencyId" }) Assert.Contains(propertyName, afterRequired);
+            foreach (var propertyName in new[] { "MaterialGroupId", "Machinable", "Printable" })
+                Assert.Equal(method == "get", afterRequired.Contains(propertyName, StringComparer.Ordinal));
             foreach (var property in before.GetProperty("properties").EnumerateObject())
             {
                 var current = after.GetProperty("properties").GetProperty(property.Name);
@@ -327,6 +331,119 @@ public sealed class CatalogOpenApiDocumentationHttpTests
                     Assert.True(expected.Remove("pattern"));
                     Assert.False(current.TryGetProperty("pattern", out _));
                 }
+                Assert.True(System.Text.Json.Nodes.JsonNode.DeepEquals(expected, System.Text.Json.Nodes.JsonNode.Parse(current.GetRawText())));
+            }
+        }
+        beforeFixture.AssertNoDatabaseWork();
+        afterFixture.AssertNoDatabaseWork();
+    }
+
+    [Fact]
+    public async Task Development_served_core_control_schema_changes_only_optional_request_controls()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var beforeFixture = new CatalogDocumentationHost("Development");
+        using var beforeFactory = beforeFixture.Host.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            var registration = Assert.Single(services, descriptor =>
+                descriptor.ServiceType == typeof(Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.OpenApi.OpenApiOptions>) &&
+                descriptor.ImplementationType == typeof(Legacy.Maliev.CatalogService.Api.OpenApi.MaterialCoreControlSchemaOptions));
+            services.Remove(registration);
+            services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+            {
+                var resolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver();
+                resolver.Modifiers.Add(info =>
+                {
+                    if (info.Type != typeof(Legacy.Maliev.CatalogService.Application.Models.UpsertMaterialRequest)) return;
+                    foreach (var property in info.Properties)
+                        if (property.CustomConverter is Legacy.Maliev.CatalogService.Application.Models.LegacyMaterialGroupIdJsonConverter)
+                            property.CustomConverter = null;
+                });
+                options.SerializerOptions.TypeInfoResolver = resolver;
+            });
+        }));
+        using var beforeClient = beforeFactory.CreateClient();
+        using var afterFixture = new CatalogDocumentationHost("Development");
+        using var afterClient = afterFixture.Host.CreateClient();
+        using var beforeResponse = await beforeClient.GetAsync("/catalog/openapi/v1.json");
+        using var afterResponse = await afterClient.GetAsync("/catalog/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, beforeResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, afterResponse.StatusCode);
+        using var beforeDocument = JsonDocument.Parse(await beforeResponse.Content.ReadAsStringAsync());
+        using var afterDocument = JsonDocument.Parse(await afterResponse.Content.ReadAsStringAsync());
+        var selected = new[] { "MaterialGroupId", "Machinable", "Printable" };
+        foreach (var method in new[] { "post", "put", "get" })
+        {
+            JsonElement Select(JsonElement root)
+            {
+                var path = method == "post" ? "/Materials" : "/Materials/{id}";
+                var operation = root.GetProperty("paths").GetProperty(path).GetProperty(method);
+                var container = method == "get" ? operation.GetProperty("responses").GetProperty("200") : operation.GetProperty("requestBody");
+                var schema = container.GetProperty("content").GetProperty("application/json").GetProperty("schema");
+                while (schema.TryGetProperty("$ref", out var reference))
+                {
+                    var value = reference.GetString()!;
+                    Assert.StartsWith("#/components/schemas/", value);
+                    schema = root.GetProperty("components").GetProperty("schemas").GetProperty(value[(value.LastIndexOf('/') + 1)..]);
+                }
+                return schema;
+            }
+            var before = Select(beforeDocument.RootElement);
+            var after = Select(afterDocument.RootElement);
+            var beforeRequired = before.GetProperty("required").EnumerateArray().Select(value => value.GetString()!).ToArray();
+            var afterRequired = after.GetProperty("required").EnumerateArray().Select(value => value.GetString()!).ToArray();
+            Assert.Equal(method == "get" ? 38 : 34, before.GetProperty("properties").EnumerateObject().Count());
+            Assert.Equal(before.GetProperty("properties").EnumerateObject().Select(property => property.Name), after.GetProperty("properties").EnumerateObject().Select(property => property.Name));
+            Assert.Equal(method == "get" ? 10 : 6, beforeRequired.Length);
+            if (method == "get")
+            {
+                Assert.Equal(before.GetRawText(), after.GetRawText());
+                foreach (var name in selected) Assert.Contains(name, afterRequired);
+                var groupType = after.GetProperty("properties").GetProperty("MaterialGroupId").GetProperty("type");
+                var groupTypes = groupType.ValueKind == JsonValueKind.Array
+                    ? groupType.EnumerateArray().Select(value => value.GetString()).ToArray()
+                    : new[] { groupType.GetString() };
+                Assert.Contains("integer", groupTypes);
+                Assert.DoesNotContain("null", groupTypes);
+                foreach (var name in new[] { "Machinable", "Printable" })
+                    Assert.Equal("boolean", after.GetProperty("properties").GetProperty(name).GetProperty("type").GetString());
+                continue;
+            }
+            Assert.Equal(3, afterRequired.Length);
+            Assert.Equal(beforeRequired.Except(selected, StringComparer.Ordinal).Order(StringComparer.Ordinal), afterRequired.Order(StringComparer.Ordinal));
+            foreach (var name in new[] { "Name", "PricePerKilogram", "CurrencyId" }) Assert.Contains(name, afterRequired);
+            foreach (var property in before.GetProperty("properties").EnumerateObject())
+            {
+                var current = after.GetProperty("properties").GetProperty(property.Name);
+                if (!selected.Contains(property.Name, StringComparer.Ordinal))
+                {
+                    Assert.Equal(property.Value.GetRawText(), current.GetRawText());
+                    continue;
+                }
+                Assert.Contains(property.Name, beforeRequired);
+                Assert.DoesNotContain(property.Name, afterRequired);
+                var expected = System.Text.Json.Nodes.JsonNode.Parse(property.Value.GetRawText())!.AsObject();
+                expected["type"] = property.Name == "MaterialGroupId"
+                    ? new System.Text.Json.Nodes.JsonArray("integer", "string", "null")
+                    : new System.Text.Json.Nodes.JsonArray("boolean", "number", "string", "null");
+                var actualTypes = current.GetProperty("type").EnumerateArray().Select(value => value.GetString()).Order(StringComparer.Ordinal).ToArray();
+                Assert.Equal(property.Name == "MaterialGroupId" ? new[] { "integer", "null", "string" } : new[] { "boolean", "null", "number", "string" }, actualTypes);
+                expected.Remove("pattern");
+                Assert.False(current.TryGetProperty("pattern", out _));
+                if (property.Name == "MaterialGroupId")
+                {
+                    expected["format"] = "int32";
+                    expected["default"] = 0;
+                    Assert.Equal(0, current.GetProperty("default").GetInt32());
+                }
+                else
+                {
+                    expected.Remove("format");
+                    expected["default"] = false;
+                    Assert.False(current.GetProperty("default").GetBoolean());
+                }
+                // Type order is an OpenAPI writer detail; compare its exact served order after checking the set.
+                expected["type"] = System.Text.Json.Nodes.JsonNode.Parse(current.GetProperty("type").GetRawText());
                 Assert.True(System.Text.Json.Nodes.JsonNode.DeepEquals(expected, System.Text.Json.Nodes.JsonNode.Parse(current.GetRawText())));
             }
         }
