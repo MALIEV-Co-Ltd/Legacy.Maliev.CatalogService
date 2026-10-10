@@ -57,3 +57,13 @@ reference HTTP cases, the full 367-case suite and original diagnostic exports,
 format/static/security checks, contracts and unchanged coverage gates. After
 merge, verify the exact protected-main SHA and its required checks. Source review
 and this draft do not establish runtime parity, deployment or database cutover.
+
+The first draft head `422dc0e64b0ccef765efa43408d425cff301d253` was exercised by
+hosted PR run `38041436747`: Release build had zero warnings/errors; the full
+suite executed 367 cases with 366 passing and one failing. The sole failure was
+the existing unit test expecting a country cache hit to bypass its strict
+repository mock. Its expectation is corrected to require the owning repository's
+state even with a conflicting stale cache value, verify one repository read and
+verify no cache calls. This does not change the test count or production code.
+Hosted validation on the corrected head remains required; the failed first run
+does not qualify the change.
