@@ -18,7 +18,7 @@ public sealed class WorkflowContractTests
     {
         WorkflowContractValidator.Validate(Workflow);
         AssertMutationRejected("      CATALOG_SOURCE_DIAGNOSTIC_OUTPUT_DIRECTORY: ${{ github.workspace }}/runner-results/country-health-diagnostics\n", "");
-        AssertMutationRejected("      - name: Verify full 789 executions and original Country/health diagnostic exports\n        run: python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports\n", "");
+        AssertMutationRejected("      - name: Verify full 821 executions and original Country/health diagnostic exports\n        run: python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports\n", "");
     }
 
     [Fact]
@@ -294,7 +294,7 @@ internal static partial class WorkflowContractValidator
         RequireScalarValue(gate, "run", "python3 -B scripts/verify-runner-coverage.py runner-results");
         var diagnostic = RequireMapping(steps.Children[5], "diagnostic gate");
         if (diagnostic.Children.Count != 2) throw new InvalidOperationException("Diagnostic gate must only name and execute the owned validator.");
-        RequireScalarValue(diagnostic, "name", "Verify full 789 executions and original Country/health diagnostic exports");
+        RequireScalarValue(diagnostic, "name", "Verify full 821 executions and original Country/health diagnostic exports");
         RequireScalarValue(diagnostic, "run", "python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports");
         var artifact = RequireMapping(steps.Children[6], "validation artifact");
         if (artifact.Children.Count != 4) throw new InvalidOperationException("Evidence retention must remain unconditional.");

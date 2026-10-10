@@ -42,7 +42,7 @@ jobs:
           use-local-maliev-dependencies: 'true'
       - name: Gate owned production coverage
         run: python3 -B scripts/verify-runner-coverage.py runner-results
-      - name: Verify full 789 executions and original Country/health diagnostic exports
+      - name: Verify full 821 executions and original Country/health diagnostic exports
         run: python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports
       - name: Preserve validation evidence
         if: always()
