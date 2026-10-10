@@ -82,6 +82,41 @@ public sealed class CatalogOpenApiDocumentationHttpTests
     }
 
     [Fact]
+    public async Task Development_document_keeps_optional_country_strings_nullable_and_optional()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var fixture = new CatalogDocumentationHost("Development");
+        using var client = fixture.Host.CreateClient();
+        using var response = await client.GetAsync("/catalog/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        foreach (var method in new[] { "post", "put" })
+        {
+            var path = method == "post" ? "/Countries" : "/Countries/{id}";
+            var schema = root.GetProperty("paths").GetProperty(path).GetProperty(method)
+                .GetProperty("requestBody").GetProperty("content").GetProperty("application/json").GetProperty("schema");
+            while (schema.TryGetProperty("$ref", out var reference))
+            {
+                var value = reference.GetString()!;
+                Assert.StartsWith("#/components/schemas/", value);
+                schema = root.GetProperty("components").GetProperty("schemas").GetProperty(value[(value.LastIndexOf('/') + 1)..]);
+            }
+            foreach (var propertyName in new[] { "Continent", "CountryCode", "Iso2", "Iso3" })
+            {
+                var property = schema.GetProperty("properties").GetProperty(propertyName);
+                Assert.Equal(JsonValueKind.Array, property.GetProperty("type").ValueKind);
+                var types = property.GetProperty("type").EnumerateArray().Select(type => type.GetString()).ToArray();
+                Assert.Equal(2, types.Length);
+                Assert.Contains("string", types);
+                Assert.Contains("null", types);
+                Assert.DoesNotContain(schema.GetProperty("required").EnumerateArray(), required => required.GetString() == propertyName);
+            }
+        }
+        fixture.AssertNoDatabaseWork();
+    }
+
+    [Fact]
     public async Task Development_document_keeps_selected_request_names_as_strings_for_clients()
     {
         using var environment = new CatalogEnvironmentScope(null);

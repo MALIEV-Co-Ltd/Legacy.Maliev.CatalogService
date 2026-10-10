@@ -31,8 +31,10 @@ builder.Services.Configure<Microsoft.AspNetCore.OpenApi.OpenApiOptions>("v1", op
 {
     options.AddSchemaTransformer((schema, context, _) =>
     {
-        if (context.JsonPropertyInfo?.CustomConverter is Legacy.Maliev.CatalogService.Application.Models.LegacyScalarStringJsonConverter)
-            schema.Type = Microsoft.OpenApi.JsonSchemaType.String;
+        if (context.JsonPropertyInfo is { } property && property.CustomConverter is Legacy.Maliev.CatalogService.Application.Models.LegacyScalarStringJsonConverter)
+            schema.Type = property.IsGetNullable || property.IsSetNullable
+                ? Microsoft.OpenApi.JsonSchemaType.String | Microsoft.OpenApi.JsonSchemaType.Null
+                : Microsoft.OpenApi.JsonSchemaType.String;
         return Task.CompletedTask;
     });
 });
