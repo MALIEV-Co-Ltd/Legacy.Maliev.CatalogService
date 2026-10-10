@@ -21,7 +21,7 @@ catch (Microsoft.Extensions.Hosting.HostAbortedException)
 {
     throw;
 }
-catch (Exception exception)
+catch (Exception exception) when (System.Reflection.Assembly.GetEntryAssembly() == typeof(Program).Assembly)
 {
     PrivateStartupBoundary.ReportFailure(exception);
 }
@@ -100,7 +100,7 @@ static async Task RunHostAsync(string[] startupArgs)
     builder.Services.AddScoped<InstantQuotationCatalogReconciler>();
     builder.Services.AddHostedService<InstantQuotationCatalogStartupService>();
 
-    await using var app = builder.Build();
+    var app = builder.Build();
 
     app.UseStandardMiddleware();
     app.UseCors();
