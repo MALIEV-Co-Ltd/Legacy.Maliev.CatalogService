@@ -43,9 +43,9 @@ public sealed class LookupServerMetadataSourceHttpTests(CatalogHttpFixture fixtu
             var data = new TheoryData<string, bool, string, string>();
             foreach (var resource in Resources)
                 foreach (var update in new[] { false, true })
-                    foreach (var field in Fields)
-                        foreach (var token in field == "Id" ? new[] { "{}", "\"invalid\"", "2147483648" } : new[] { "[]", "123", "\"invalid-date\"" })
-                            data.Add(resource, update, field, token);
+                    foreach (var memberName in Fields)
+                        foreach (var token in memberName == "Id" ? new[] { "{}", "\"invalid\"", "2147483648" } : new[] { "[]", "123", "\"invalid-date\"" })
+                            data.Add(resource, update, memberName, token);
             return data;
         }
     }
@@ -57,7 +57,7 @@ public sealed class LookupServerMetadataSourceHttpTests(CatalogHttpFixture fixtu
             var data = new TheoryData<string, bool, string>();
             foreach (var resource in Resources)
                 foreach (var update in new[] { false, true })
-                    foreach (var field in Fields) data.Add(resource, update, field);
+                    foreach (var memberName in Fields) data.Add(resource, update, memberName);
             return data;
         }
     }
