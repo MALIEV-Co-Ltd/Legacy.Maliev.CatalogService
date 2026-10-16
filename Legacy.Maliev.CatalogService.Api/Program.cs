@@ -69,6 +69,7 @@ static async Task RunHostAsync(string[] startupArgs)
     builder.Services.AddControllers().AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyMaterialRequestJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyLookupRequestJsonConverterFactory());
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
         options.JsonSerializerOptions.DictionaryKeyPolicy = null;
