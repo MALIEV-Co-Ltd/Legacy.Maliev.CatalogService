@@ -163,7 +163,8 @@ public sealed class LookupServerMetadataSourceHttpTests(CatalogHttpFixture fixtu
     [Fact]
     public async Task ServedOpenApi_KeepsLookupRequestsFreeOfWritableServerMetadata()
     {
-        using var client = fixture.CreateAnonymousClient();
+        using var metadataHost = new CatalogDocumentationHost("Development");
+        using var client = metadataHost.Host.CreateClient();
         using var response = await client.GetAsync("/catalog/openapi/v1.json");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -174,6 +175,7 @@ public sealed class LookupServerMetadataSourceHttpTests(CatalogHttpFixture fixtu
             Assert.True(properties.TryGetProperty("Name", out _));
             foreach (var field in Fields) Assert.False(properties.TryGetProperty(field, out _));
         }
+        metadataHost.AssertNoDatabaseWork();
     }
 
     [Theory]
