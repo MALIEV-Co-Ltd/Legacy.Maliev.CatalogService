@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Legacy.Maliev.CatalogService.Application.Models;
 
-/// <summary>Preserves ignored group identifier occurrences within a single Material request body.</summary>
+/// <summary>Preserves typed ignored identifiers within a single Material request body.</summary>
 public sealed class LegacyMaterialRequestJsonConverter : JsonConverter<UpsertMaterialRequest>
 {
     /// <inheritdoc />
@@ -12,6 +12,7 @@ public sealed class LegacyMaterialRequestJsonConverter : JsonConverter<UpsertMat
         using var document = JsonDocument.ParseValue(ref reader);
         if (document.RootElement.ValueKind != JsonValueKind.Object)
             throw new JsonException("Expected a Material request object.");
+        JsonSerializerOptions? ignoredIdOptions = null;
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer))
         {
@@ -19,6 +20,18 @@ public sealed class LegacyMaterialRequestJsonConverter : JsonConverter<UpsertMat
             foreach (var property in document.RootElement.EnumerateObject())
             {
                 var comparison = options.PropertyNameCaseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+                if (string.Equals(property.Name, nameof(MaterialResponse.Id), comparison))
+                {
+                    // The original typed Material binds Id before the controller discards it.
+                    // Validate every occurrence without adding client authority over identity.
+                    if (ignoredIdOptions is null)
+                    {
+                        ignoredIdOptions = new JsonSerializerOptions(options);
+                        ignoredIdOptions.Converters.Insert(0, new LegacyMaterialGroupIdJsonConverter());
+                    }
+                    _ = property.Value.Deserialize<int>(ignoredIdOptions);
+                    continue;
+                }
                 if (string.Equals(property.Name, nameof(UpsertMaterialRequest.MaterialGroupId), comparison) &&
                     (property.Value.ValueKind == JsonValueKind.Null ||
                     (property.Value.ValueKind == JsonValueKind.String && property.Value.GetString() == string.Empty)))
