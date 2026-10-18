@@ -66,7 +66,10 @@ static async Task RunHostAsync(string[] startupArgs)
         options.SerializerOptions.DictionaryKeyPolicy = null;
     });
 
-    builder.Services.AddControllers().AddJsonOptions(options =>
+    builder.Services.AddControllers(options =>
+    {
+        options.InputFormatters.Insert(0, new Legacy.Maliev.CatalogService.Api.Serialization.LegacyCurrencyRequestInputFormatter());
+    }).AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyMaterialRequestJsonConverter());
         options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyLookupRequestJsonConverterFactory());
