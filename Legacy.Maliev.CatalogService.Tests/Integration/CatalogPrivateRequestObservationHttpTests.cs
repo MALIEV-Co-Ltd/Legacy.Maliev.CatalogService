@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -223,7 +224,25 @@ public sealed class CatalogPrivateRequestObservationHttpTests
 
         public HttpClient OpenClient()
         {
-            var client = CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+            StartServer();
+            var server = Services.GetRequiredService<IServer>();
+            var options = new WebApplicationFactoryClientOptions { AllowAutoRedirect = false };
+            if (server is not TestServer)
+            {
+                var addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses
+                    ?? throw new InvalidOperationException("Kestrel did not publish a bound address.");
+                var address = new Uri(Assert.Single(addresses), UriKind.Absolute);
+                Assert.Equal(Uri.UriSchemeHttp, address.Scheme);
+                Assert.True(IPAddress.TryParse(address.Host, out var peer)
+                    && peer is not null && IPAddress.IsLoopback(peer));
+                Assert.InRange(address.Port, 1, 65535);
+                Assert.Equal("/", address.AbsolutePath);
+                Assert.Empty(address.UserInfo);
+                Assert.Empty(address.Query);
+                Assert.Empty(address.Fragment);
+                options.BaseAddress = address;
+            }
+            var client = CreateClient(options);
             client.Timeout = TimeSpan.FromSeconds(15);
             return client;
         }
