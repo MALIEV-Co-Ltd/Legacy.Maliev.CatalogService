@@ -46,7 +46,8 @@ public sealed class FrankfurterExchangeRateClientTests
         using var client = new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{\"USD\":" + token + "}}", Encoding.UTF8, "application/json"),
-        })) { BaseAddress = new Uri("https://api.frankfurter.app/") };
+        }))
+        { BaseAddress = new Uri("https://api.frankfurter.app/") };
 
         var result = await new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None);
 
@@ -66,7 +67,8 @@ public sealed class FrankfurterExchangeRateClientTests
         using var client = new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{\"USD\":" + token + "}}", Encoding.UTF8, "application/json"),
-        })) { BaseAddress = new Uri("https://api.frankfurter.app/") };
+        }))
+        { BaseAddress = new Uri("https://api.frankfurter.app/") };
 
         await Assert.ThrowsAsync<System.Text.Json.JsonException>(() =>
             new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None));
@@ -89,7 +91,8 @@ public sealed class FrankfurterExchangeRateClientTests
             using var client = new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":" + rates + "}", Encoding.UTF8, "application/json"),
-            })) { BaseAddress = new Uri("https://api.frankfurter.app/") };
+            }))
+            { BaseAddress = new Uri("https://api.frankfurter.app/") };
 
             var result = await new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None);
 
