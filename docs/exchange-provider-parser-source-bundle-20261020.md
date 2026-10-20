@@ -12,9 +12,9 @@ Startup blob `565ff564241fdea5ebf7f98f59a0e86b41aa90c1` configures Newtonsoft nu
 
 Use the same stock parser and a private three-property projection only inside the existing provider adapter.
 Do not install Newtonsoft as Catalog's global MVC serializer.
-Explicit runtime Newtonsoft.Json 13.0.3 matches the declared minimum of the existing test MVC.NewtonsoftJson 10.0.3 dependency:
+Explicit runtime Newtonsoft.Json 13.0.4 satisfies the existing EF Core Design 10.0.12 dependency requirement (>=13.0.4), as observed in the terminal hosted restore log. The existing test MVC.NewtonsoftJson 10.0.3 dependency declares >=13.0.3:
 https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.NewtonsoftJson/10.0.3
-https://www.nuget.org/packages/Newtonsoft.Json/13.0.3
+https://www.nuget.org/packages/Newtonsoft.Json/13.0.4
 No packages.lock.json or central package lock exists in this base tree; none is fabricated.
 
 Allow a null provider model and null Rates through the interface and response model.
