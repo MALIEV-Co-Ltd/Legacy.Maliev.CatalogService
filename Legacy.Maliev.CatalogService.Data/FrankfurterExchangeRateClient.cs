@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Legacy.Maliev.CatalogService.Application.Interfaces;
 using Legacy.Maliev.CatalogService.Application.Models;
+using Newtonsoft.Json;
 
 namespace Legacy.Maliev.CatalogService.Data;
 
@@ -8,24 +8,22 @@ namespace Legacy.Maliev.CatalogService.Data;
 public sealed class FrankfurterExchangeRateClient(HttpClient httpClient) : IExchangeRateClient
 {
     /// <inheritdoc />
-    public async Task<ExchangeRateResponse> GetLatestAsync(string baseCurrency, string targetCurrency, CancellationToken cancellationToken)
+    public async Task<ExchangeRateResponse?> GetLatestAsync(string baseCurrency, string targetCurrency, CancellationToken cancellationToken)
     {
         var from = Uri.EscapeDataString(baseCurrency);
         var to = Uri.EscapeDataString(targetCurrency);
         using var response = await httpClient.GetAsync($"latest?amount=1&from={from}&to={to}", cancellationToken);
         response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        var root = document.RootElement;
-        var scalarOptions = new JsonSerializerOptions();
-        scalarOptions.Converters.Add(new LegacyScalarStringJsonConverter());
-        var rates = root.GetProperty("rates").EnumerateObject().ToDictionary(
-            property => property.Name,
-            property => property.Value.Deserialize<string>(scalarOptions)!,
-            StringComparer.Ordinal);
-        return new(
-            root.TryGetProperty("base", out var providerBase) ? providerBase.GetString() : null,
-            root.GetProperty("date").GetDateTime(),
-            rates);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var original = JsonConvert.DeserializeObject<OriginalOpenRatesModel>(body);
+        return original is null ? null : new(original.Base, original.Date, original.Rates);
+    }
+
+    // Preserve the original provider model and stock parser inside this adapter only.
+    private sealed class OriginalOpenRatesModel
+    {
+        public string? Base { get; set; }
+        public DateTime Date { get; set; }
+        public Dictionary<string, string>? Rates { get; set; }
     }
 }

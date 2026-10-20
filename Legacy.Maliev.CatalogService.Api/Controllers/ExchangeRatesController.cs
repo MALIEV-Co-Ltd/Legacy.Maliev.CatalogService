@@ -16,9 +16,14 @@ public sealed class ExchangeRatesController(IExchangeRateClient exchangeRateClie
     /// <summary>Returns the latest exchange rate.</summary>
     [HttpGet("/currencies/exchangerates")]
     [RequirePermission(CatalogPermissions.CurrenciesRead)]
-    public Task<ExchangeRateResponse> GetLiveExchangeRatesAsync(
+    [ProducesResponseType<ExchangeRateResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult<ExchangeRateResponse>> GetLiveExchangeRatesAsync(
         [FromQuery] string baseCurrency,
         [FromQuery] string targetCurrency,
-        CancellationToken cancellationToken) =>
-        exchangeRateClient.GetLatestAsync(baseCurrency, targetCurrency, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        var result = await exchangeRateClient.GetLatestAsync(baseCurrency, targetCurrency, cancellationToken);
+        return result is null ? NoContent() : result;
+    }
 }

@@ -73,9 +73,17 @@ public sealed class CatalogOpenApiDocumentationHttpTests
         var required = schema.GetProperty("required").EnumerateArray().Select(item => item.GetString()).ToArray();
         Assert.DoesNotContain("Base", required);
         Assert.Contains("Date", required);
-        Assert.Contains("Rates", required);
+        Assert.DoesNotContain("Rates", required);
         Assert.True(properties.TryGetProperty("Date", out _));
         Assert.True(properties.TryGetProperty("Rates", out _));
+        var rateTypes = properties.GetProperty("Rates").GetProperty("type").EnumerateArray().Select(type => type.GetString()).ToArray();
+        Assert.Equal(2, rateTypes.Length);
+        Assert.Contains("object", rateTypes);
+        Assert.Contains("null", rateTypes);
+        var responses = document.RootElement.GetProperty("paths").GetProperty("/currencies/exchangerates")
+            .GetProperty("get").GetProperty("responses");
+        Assert.True(responses.TryGetProperty("200", out _));
+        Assert.True(responses.TryGetProperty("204", out _));
         fixture.AssertNoDatabaseWork();
     }
 

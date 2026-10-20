@@ -23,6 +23,7 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
     private readonly RSA signingKey = RSA.Create(2048);
     private WebApplication provider = null!;
     private WebApplicationFactory<Program> factory = null!;
+    private HttpClient originalClient = null!;
     private int calls;
     private int providerStatus = 200;
     private bool failFirstRequest;
@@ -35,7 +36,19 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
             throw new InvalidOperationException("The FX fixture refuses ambient database-validation startup mode before creating its provider.");
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.UseKestrel().UseUrls("http://127.0.0.1:0");
+        builder.Services.AddSingleton<Func<string>>(_ => () => providerBody);
+        builder.Services.AddControllers().AddNewtonsoftJson(options =>
+        {
+            options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
+            options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+        })
+            .ConfigureApplicationPartManager(manager =>
+            {
+                manager.FeatureProviders.Clear();
+                manager.FeatureProviders.Add(new OriginalControllerFeatureProvider());
+            });
         provider = builder.Build();
+        provider.MapControllers();
         provider.MapGet("/latest", async context =>
         {
             var attempt = Interlocked.Increment(ref calls);
@@ -46,6 +59,7 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
         });
         await provider.StartAsync();
         var address = provider.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        originalClient = new HttpClient { BaseAddress = new Uri(address) };
         factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
         {
             host.UseEnvironment("Production");
@@ -215,7 +229,109 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
         Assert.False(wire.RootElement.TryGetProperty("base", out _));
     }
 
-    private sealed class OriginalOpenRatesModel
+
+    [Theory]
+    [InlineData("missing-all", "{}")]
+    [InlineData("missing-date", "{\"base\":\"THB\",\"rates\":{\"USD\":1}}")]
+    [InlineData("null-date", "{\"base\":\"THB\",\"date\":null,\"rates\":{\"USD\":1}}")]
+    [InlineData("empty-date", "{\"base\":\"THB\",\"date\":\"\",\"rates\":{\"USD\":1}}")]
+    [InlineData("valid-date", "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{\"USD\":1}}")]
+    [InlineData("timestamp-date", "{\"base\":\"THB\",\"date\":\"2026-10-03T12:34:56Z\",\"rates\":{\"USD\":1}}")]
+    [InlineData("offset-date", "{\"base\":\"THB\",\"date\":\"2026-10-03T12:34:56+07:00\",\"rates\":{\"USD\":1}}")]
+    [InlineData("microsoft-date", "{\"base\":\"THB\",\"date\":\"/Date(1790985600000)/\",\"rates\":{\"USD\":1}}")]
+    [InlineData("invalid-date", "{\"base\":\"THB\",\"date\":\"provider-internal-sentinel\",\"rates\":{\"USD\":1}}")]
+    [InlineData("number-date", "{\"base\":\"THB\",\"date\":123,\"rates\":{\"USD\":1}}")]
+    [InlineData("missing-rates", "{\"base\":\"THB\",\"date\":\"2026-10-03\"}")]
+    [InlineData("null-rates", "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":null}")]
+    [InlineData("empty-rates", "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{}}")]
+    [InlineData("array-rates", "{\"base\":\"THB\",\"rates\":[]}")]
+    [InlineData("string-rates", "{\"base\":\"THB\",\"rates\":\"provider-internal-sentinel\"}")]
+    [InlineData("root-null", "null")]
+    [InlineData("root-array", "[]")]
+    [InlineData("root-string", "\"provider-internal-sentinel\"")]
+    [InlineData("upper-case", "{\"BASE\":\"THB\",\"DATE\":\"2026-10-03\",\"RATES\":{\"USD\":1}}")]
+    [InlineData("mixed-case", "{\"bAsE\":\"THB\",\"dAtE\":\"2026-10-03\",\"rAtEs\":{\"usd\":1,\"USD\":2}}")]
+    [InlineData("duplicate-base", "{\"base\":\"USD\",\"Base\":\"THB\",\"rates\":{\"USD\":1}}")]
+    [InlineData("duplicate-date", "{\"date\":\"2026-10-02\",\"Date\":\"2026-10-03\",\"rates\":{\"USD\":1}}")]
+    [InlineData("duplicate-rate-key", "{\"base\":\"THB\",\"rates\":{\"USD\":1,\"USD\":2}}")]
+    [InlineData("duplicate-rates", "{\"base\":\"THB\",\"rates\":{\"USD\":1},\"Rates\":{\"EUR\":2}}")]
+    [InlineData("duplicate-rates-null", "{\"base\":\"THB\",\"rates\":{\"USD\":1},\"rates\":null}")]
+    [InlineData("unknown-member", "{\"base\":\"THB\",\"rates\":{\"USD\":1},\"unused\":{\"provider-internal-sentinel\":[]}}")]
+    [InlineData("number-base", "{\"base\":123,\"rates\":{\"USD\":1}}")]
+    [InlineData("boolean-base", "{\"base\":true,\"rates\":{\"USD\":1}}")]
+    [InlineData("array-base", "{\"base\":[],\"rates\":{\"USD\":1}}")]
+    [InlineData("object-base", "{\"base\":{},\"rates\":{\"USD\":1}}")]
+    [InlineData("null-base", "{\"base\":null,\"rates\":{\"USD\":1}}")]
+    [InlineData("all-null", "{\"base\":null,\"date\":null,\"rates\":null}")]
+    [InlineData("malformed-json", "{provider-internal-sentinel")]
+    [InlineData("trailing-comma", "{\"base\":\"THB\",\"rates\":{\"USD\":1},}")]
+    [InlineData("comment-json", "{\"base\":\"THB\",/* provider-internal-sentinel */\"rates\":{\"USD\":1}}")]
+    public async Task Route_OriginalProviderParserMatrix_MatchesSourceMvcBoundary(string caseName, string body)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(caseName));
+        providerBody = body;
+        using var client = Client("legacy-catalog.currencies.read");
+        using var originalResponse = await originalClient.GetAsync("/original/exchangerates");
+        using var response = await client.GetAsync("/currencies/exchangerates?baseCurrency=THB&targetCurrency=USD");
+
+        Assert.Equal(originalResponse.StatusCode, response.StatusCode);
+        Assert.Equal(1, calls);
+        Assert.Equal("?amount=1&from=THB&to=USD", query);
+        var actualBody = await response.Content.ReadAsStringAsync();
+        if (originalResponse.StatusCode == HttpStatusCode.NoContent)
+        {
+            Assert.Equal(string.Empty, actualBody);
+            return;
+        }
+        if (originalResponse.StatusCode != HttpStatusCode.OK)
+        {
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.DoesNotContain("provider-internal-sentinel", actualBody, StringComparison.Ordinal);
+            return;
+        }
+        using var originalWire = JsonDocument.Parse(await originalResponse.Content.ReadAsStringAsync());
+        using var wire = JsonDocument.Parse(actualBody);
+        // Catalog's accepted PascalCase consumer contract is retained explicitly.
+        static string CatalogName(string sourceName) => sourceName switch
+        {
+            "base" or "Base" => "Base",
+            "date" or "Date" => "Date",
+            "rates" or "Rates" => "Rates",
+            _ => throw new InvalidOperationException("Unexpected original model property."),
+        };
+        Assert.Equal(originalWire.RootElement.EnumerateObject().Select(property => CatalogName(property.Name)),
+            wire.RootElement.EnumerateObject().Select(property => property.Name));
+        foreach (var property in originalWire.RootElement.EnumerateObject())
+        {
+            var actual = wire.RootElement.GetProperty(CatalogName(property.Name));
+            if (CatalogName(property.Name) == "Date")
+                Assert.Equal(property.Value.GetDateTime(), actual.GetDateTime());
+            else
+                Assert.Equal(property.Value.GetRawText(), actual.GetRawText());
+        }
+    }
+
+    // This isolated loopback oracle executes the retained ActionResult<T> and Newtonsoft MVC settings.
+    public sealed class OriginalExchangeRatesController(Func<string> body) : Microsoft.AspNetCore.Mvc.ControllerBase
+    {
+        [Microsoft.AspNetCore.Mvc.HttpGet("/original/exchangerates")]
+        public Task<Microsoft.AspNetCore.Mvc.ActionResult<OriginalOpenRatesModel>> GetLiveExchangeRatesAsync() =>
+            Task.FromResult<Microsoft.AspNetCore.Mvc.ActionResult<OriginalOpenRatesModel>>(
+                Newtonsoft.Json.JsonConvert.DeserializeObject<OriginalOpenRatesModel>(body())!);
+    }
+
+    private sealed class OriginalControllerFeatureProvider :
+        Microsoft.AspNetCore.Mvc.ApplicationParts.IApplicationFeatureProvider<Microsoft.AspNetCore.Mvc.Controllers.ControllerFeature>
+    {
+        public void PopulateFeature(IEnumerable<Microsoft.AspNetCore.Mvc.ApplicationParts.ApplicationPart> parts,
+            Microsoft.AspNetCore.Mvc.Controllers.ControllerFeature feature)
+        {
+            feature.Controllers.Clear();
+            feature.Controllers.Add(System.Reflection.IntrospectionExtensions.GetTypeInfo(typeof(OriginalExchangeRatesController)));
+        }
+    }
+
+    public sealed class OriginalOpenRatesModel
     {
         public string? Base { get; set; }
         public DateTime Date { get; set; }
@@ -236,6 +352,7 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        originalClient?.Dispose();
         try { if (factory is not null) await factory.DisposeAsync(); }
         finally
         {
