@@ -23,7 +23,10 @@ public sealed class MaterialStringSchemaOptions : IConfigureNamedOptions<OpenApi
                 foreach (var propertyName in OptionalStrings)
                     schema.Required?.Remove(propertyName);
             if (context.JsonTypeInfo.Type == typeof(ExchangeRateResponse))
+            {
                 schema.Required?.Remove(nameof(ExchangeRateResponse.Base));
+                schema.Required?.Remove(nameof(ExchangeRateResponse.Rates));
+            }
             return Task.CompletedTask;
         });
     }

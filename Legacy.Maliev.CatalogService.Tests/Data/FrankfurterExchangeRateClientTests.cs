@@ -24,6 +24,8 @@ public sealed class FrankfurterExchangeRateClientTests
         var result = await exchangeRates.GetLatestAsync(" thb ", "usd", CancellationToken.None);
 
         Assert.Equal("https://api.frankfurter.app/latest?amount=1&from=%20thb%20&to=usd", requestedUri?.AbsoluteUri);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Rates);
         Assert.Equal("THB", result.Base);
         Assert.Equal("0.03081", result.Rates["USD"]);
     }
@@ -51,6 +53,8 @@ public sealed class FrankfurterExchangeRateClientTests
 
         var result = await new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None);
 
+        Assert.NotNull(result);
+        Assert.NotNull(result.Rates);
         Assert.Equal("THB", result.Base);
         Assert.Equal(new DateTime(2026, 10, 3), result.Date);
         Assert.Equal(expected, result.Rates["USD"]);
@@ -70,7 +74,7 @@ public sealed class FrankfurterExchangeRateClientTests
         }))
         { BaseAddress = new Uri("https://api.frankfurter.app/") };
 
-        await Assert.ThrowsAsync<System.Text.Json.JsonException>(() =>
+        await Assert.ThrowsAnyAsync<Newtonsoft.Json.JsonException>(() =>
             new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None));
     }
 
@@ -96,6 +100,8 @@ public sealed class FrankfurterExchangeRateClientTests
 
             var result = await new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None);
 
+            Assert.NotNull(result);
+            Assert.NotNull(result.Rates);
             Assert.Equal(original.OrderBy(pair => pair.Key), result.Rates.OrderBy(pair => pair.Key));
         }
         finally
@@ -123,10 +129,88 @@ public sealed class FrankfurterExchangeRateClientTests
 
         var result = await new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None);
 
+        Assert.NotNull(result);
+        Assert.NotNull(result.Rates);
         Assert.Equal(original.Base, result.Base);
         Assert.Equal(original.Date, result.Date);
         Assert.NotNull(original.Rates);
         Assert.Equal(original.Rates["USD"], result.Rates["USD"]);
+    }
+
+
+    [Theory]
+    [InlineData("missing-all", "{}")]
+    [InlineData("missing-date", "{\"base\":\"THB\",\"rates\":{\"USD\":1}}")]
+    [InlineData("null-date", "{\"base\":\"THB\",\"date\":null,\"rates\":{\"USD\":1}}")]
+    [InlineData("empty-date", "{\"base\":\"THB\",\"date\":\"\",\"rates\":{\"USD\":1}}")]
+    [InlineData("valid-date", "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{\"USD\":1}}")]
+    [InlineData("timestamp-date", "{\"base\":\"THB\",\"date\":\"2026-10-03T12:34:56Z\",\"rates\":{\"USD\":1}}")]
+    [InlineData("offset-date", "{\"base\":\"THB\",\"date\":\"2026-10-03T12:34:56+07:00\",\"rates\":{\"USD\":1}}")]
+    [InlineData("microsoft-date", "{\"base\":\"THB\",\"date\":\"/Date(1790985600000)/\",\"rates\":{\"USD\":1}}")]
+    [InlineData("invalid-date", "{\"base\":\"THB\",\"date\":\"provider-internal-sentinel\",\"rates\":{\"USD\":1}}")]
+    [InlineData("number-date", "{\"base\":\"THB\",\"date\":123,\"rates\":{\"USD\":1}}")]
+    [InlineData("missing-rates", "{\"base\":\"THB\",\"date\":\"2026-10-03\"}")]
+    [InlineData("null-rates", "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":null}")]
+    [InlineData("empty-rates", "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{}}")]
+    [InlineData("array-rates", "{\"base\":\"THB\",\"rates\":[]}")]
+    [InlineData("string-rates", "{\"base\":\"THB\",\"rates\":\"provider-internal-sentinel\"}")]
+    [InlineData("root-null", "null")]
+    [InlineData("root-array", "[]")]
+    [InlineData("root-string", "\"provider-internal-sentinel\"")]
+    [InlineData("upper-case", "{\"BASE\":\"THB\",\"DATE\":\"2026-10-03\",\"RATES\":{\"USD\":1}}")]
+    [InlineData("mixed-case", "{\"bAsE\":\"THB\",\"dAtE\":\"2026-10-03\",\"rAtEs\":{\"usd\":1,\"USD\":2}}")]
+    [InlineData("duplicate-base", "{\"base\":\"USD\",\"Base\":\"THB\",\"rates\":{\"USD\":1}}")]
+    [InlineData("duplicate-date", "{\"date\":\"2026-10-02\",\"Date\":\"2026-10-03\",\"rates\":{\"USD\":1}}")]
+    [InlineData("duplicate-rate-key", "{\"base\":\"THB\",\"rates\":{\"USD\":1,\"USD\":2}}")]
+    [InlineData("duplicate-rates", "{\"base\":\"THB\",\"rates\":{\"USD\":1},\"Rates\":{\"EUR\":2}}")]
+    [InlineData("duplicate-rates-null", "{\"base\":\"THB\",\"rates\":{\"USD\":1},\"rates\":null}")]
+    [InlineData("unknown-member", "{\"base\":\"THB\",\"rates\":{\"USD\":1},\"unused\":{\"provider-internal-sentinel\":[]}}")]
+    [InlineData("number-base", "{\"base\":123,\"rates\":{\"USD\":1}}")]
+    [InlineData("boolean-base", "{\"base\":true,\"rates\":{\"USD\":1}}")]
+    [InlineData("array-base", "{\"base\":[],\"rates\":{\"USD\":1}}")]
+    [InlineData("object-base", "{\"base\":{},\"rates\":{\"USD\":1}}")]
+    [InlineData("null-base", "{\"base\":null,\"rates\":{\"USD\":1}}")]
+    [InlineData("all-null", "{\"base\":null,\"date\":null,\"rates\":null}")]
+    [InlineData("malformed-json", "{provider-internal-sentinel")]
+    [InlineData("trailing-comma", "{\"base\":\"THB\",\"rates\":{\"USD\":1},}")]
+    [InlineData("comment-json", "{\"base\":\"THB\",/* provider-internal-sentinel */\"rates\":{\"USD\":1}}")]
+    public async Task GetLatestAsync_OriginalProviderParserMatrix_PreservesStockModel(string caseName, string body)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(caseName));
+        OriginalOpenRatesModel? original = null;
+        var originalFailure = Record.Exception(() =>
+            original = Newtonsoft.Json.JsonConvert.DeserializeObject<OriginalOpenRatesModel>(body));
+        using var client = new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json"),
+        }))
+        { BaseAddress = new Uri("https://api.frankfurter.app/") };
+
+        if (originalFailure is not null)
+        {
+            Assert.IsAssignableFrom<Newtonsoft.Json.JsonException>(originalFailure);
+            await Assert.ThrowsAnyAsync<Newtonsoft.Json.JsonException>(() =>
+                new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None));
+            return;
+        }
+
+        var result = await new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None);
+
+        if (original is null)
+        {
+            Assert.Null(result);
+            return;
+        }
+        Assert.NotNull(result);
+        Assert.Equal(original.Base, result.Base);
+        Assert.Equal(original.Date, result.Date);
+        Assert.Equal(original.Date.Kind, result.Date.Kind);
+        if (original.Rates is null) Assert.Null(result.Rates);
+        else
+        {
+            Assert.NotNull(result.Rates);
+            Assert.Equal(original.Rates.OrderBy(pair => pair.Key), result.Rates.OrderBy(pair => pair.Key));
+        }
     }
 
     // The three property types match the retained original OpenRatesModel.
