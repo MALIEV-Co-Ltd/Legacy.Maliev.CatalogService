@@ -171,4 +171,4 @@ public sealed record MaterialSupplierResponse(int Id, int MaterialId, int Suppli
 public sealed record MaterialSurfaceFinishResponse(int Id, int MaterialId, int SurfaceFinishId, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible exchange-rate response.</summary>
-public sealed record ExchangeRateResponse(string Base, DateTime Date, IReadOnlyDictionary<string, string> Rates);
+public sealed record ExchangeRateResponse(string? Base, DateTime Date, IReadOnlyDictionary<string, string> Rates);

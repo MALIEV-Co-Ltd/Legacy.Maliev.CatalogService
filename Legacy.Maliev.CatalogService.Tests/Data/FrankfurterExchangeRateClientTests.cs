@@ -104,6 +104,39 @@ public sealed class FrankfurterExchangeRateClientTests
         }
     }
 
+    [Theory]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    [InlineData(true, "THB")]
+    [InlineData(true, "USD")]
+    public async Task GetLatestAsync_ProviderBaseIdentity_IsNeverInventedFromTheRequest(bool includeBase, string? providerBase)
+    {
+        var baseMember = includeBase ? "\"base\":" + System.Text.Json.JsonSerializer.Serialize(providerBase) + "," : string.Empty;
+        var body = "{" + baseMember + "\"date\":\"2026-10-03\",\"rates\":{\"USD\":0.03081001}}";
+        var original = Newtonsoft.Json.JsonConvert.DeserializeObject<OriginalOpenRatesModel>(body)!;
+        Assert.Equal(providerBase, original.Base);
+        using var client = new HttpClient(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json"),
+        }))
+        { BaseAddress = new Uri("https://api.frankfurter.app/") };
+
+        var result = await new FrankfurterExchangeRateClient(client).GetLatestAsync("THB", "USD", CancellationToken.None);
+
+        Assert.Equal(original.Base, result.Base);
+        Assert.Equal(original.Date, result.Date);
+        Assert.NotNull(original.Rates);
+        Assert.Equal(original.Rates["USD"], result.Rates["USD"]);
+    }
+
+    // The three property types match the retained original OpenRatesModel.
+    private sealed class OriginalOpenRatesModel
+    {
+        public string? Base { get; set; }
+        public DateTime Date { get; set; }
+        public Dictionary<string, string>? Rates { get; set; }
+    }
+
     private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>

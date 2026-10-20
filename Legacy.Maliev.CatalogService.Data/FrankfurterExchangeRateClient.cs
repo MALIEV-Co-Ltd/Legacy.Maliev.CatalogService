@@ -24,7 +24,7 @@ public sealed class FrankfurterExchangeRateClient(HttpClient httpClient) : IExch
             property => property.Value.Deserialize<string>(scalarOptions)!,
             StringComparer.Ordinal);
         return new(
-            root.GetProperty("base").GetString() ?? from,
+            root.TryGetProperty("base", out var providerBase) ? providerBase.GetString() : null,
             root.GetProperty("date").GetDateTime(),
             rates);
     }
