@@ -121,8 +121,8 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
     [Theory]
     [InlineData(400, "provider-internal-sentinel")]
     [InlineData(200, "{malformed-provider-internal-sentinel")]
-    [InlineData(200, "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{\"provider-internal-sentinel\":{}}}")]
-    [InlineData(200, "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{\"provider-internal-sentinel\":[]}}")]
+    [InlineData(200, "{\"rates\":{\"provider-internal-sentinel\":{}},\"base\":\"THB\",\"date\":\"2026-10-03\"}")]
+    [InlineData(200, "{\"rates\":{\"provider-internal-sentinel\":[]},\"base\":\"THB\",\"date\":\"2026-10-03\"}")]
     public async Task Route_ProviderFailure_DoesNotReturnSuccessOrLeakProviderBody(int status, string body)
     {
         providerStatus = status;
