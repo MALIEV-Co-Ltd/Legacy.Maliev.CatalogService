@@ -185,6 +185,43 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
         Assert.False(wire.RootElement.TryGetProperty("rates", out _));
     }
 
+    [Theory]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    [InlineData(true, "THB")]
+    [InlineData(true, "USD")]
+    public async Task Route_ProviderBaseIdentity_PreservesLiteralOrSourceNullOmission(bool includeBase, string? providerBase)
+    {
+        var baseMember = includeBase ? "\"base\":" + JsonSerializer.Serialize(providerBase) + "," : string.Empty;
+        providerBody = "{" + baseMember + "\"date\":\"2026-10-03\",\"rates\":{\"USD\":0.03081001}}";
+        using var original = JsonDocument.Parse(Newtonsoft.Json.JsonConvert.SerializeObject(
+            Newtonsoft.Json.JsonConvert.DeserializeObject<OriginalOpenRatesModel>(providerBody),
+            new Newtonsoft.Json.JsonSerializerSettings { NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore }));
+        using var client = Client("legacy-catalog.currencies.read");
+
+        using var response = await client.GetAsync("/currencies/exchangerates?baseCurrency=THB&targetCurrency=USD");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(1, calls);
+        Assert.Equal("?amount=1&from=THB&to=USD", query);
+        using var wire = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var originalHasBase = original.RootElement.TryGetProperty("Base", out var originalBase);
+        Assert.Equal(providerBase is not null, originalHasBase);
+        Assert.Equal(originalHasBase, wire.RootElement.TryGetProperty("Base", out var actualBase));
+        if (originalHasBase) Assert.Equal(originalBase.GetString(), actualBase.GetString());
+        Assert.Equal(original.RootElement.GetProperty("Date").GetDateTime(), wire.RootElement.GetProperty("Date").GetDateTime());
+        Assert.Equal(original.RootElement.GetProperty("Rates").GetProperty("USD").GetString(),
+            wire.RootElement.GetProperty("Rates").GetProperty("USD").GetString());
+        Assert.False(wire.RootElement.TryGetProperty("base", out _));
+    }
+
+    private sealed class OriginalOpenRatesModel
+    {
+        public string? Base { get; set; }
+        public DateTime Date { get; set; }
+        public Dictionary<string, string>? Rates { get; set; }
+    }
+
     private HttpClient Client(string? permission)
     {
         var client = factory.CreateClient();

@@ -55,6 +55,31 @@ public sealed class CatalogOpenApiDocumentationHttpTests
     }
 
     [Fact]
+    public async Task Development_document_keeps_exchange_rate_base_nullable_and_optional()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var fixture = new CatalogDocumentationHost("Development");
+        using var client = fixture.Host.CreateClient();
+        using var response = await client.GetAsync("/catalog/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var schema = document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("ExchangeRateResponse");
+        var properties = schema.GetProperty("properties");
+        var types = properties.GetProperty("Base").GetProperty("type").EnumerateArray().Select(type => type.GetString()).ToArray();
+        Assert.Equal(2, types.Length);
+        Assert.Contains("string", types);
+        Assert.Contains("null", types);
+        Assert.False(properties.TryGetProperty("base", out _));
+        var required = schema.GetProperty("required").EnumerateArray().Select(item => item.GetString()).ToArray();
+        Assert.DoesNotContain("Base", required);
+        Assert.Contains("Date", required);
+        Assert.Contains("Rates", required);
+        Assert.True(properties.TryGetProperty("Date", out _));
+        Assert.True(properties.TryGetProperty("Rates", out _));
+        fixture.AssertNoDatabaseWork();
+    }
+
+    [Fact]
     public async Task Production_keeps_documentation_unmapped_instead_of_exposing_development_metadata()
     {
         // Catches a documentation repair accidentally mapping OpenAPI/Scalar in production.
