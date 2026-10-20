@@ -53,7 +53,7 @@ public sealed class NameScalarSourceHttpTests(CatalogHttpFixture fixture) : ICla
         {
             using var create = await client.PostAsJsonAsync(route, payload);
             Assert.Equal(HttpStatusCode.Created, create.StatusCode);
-            id = (await ReadAsync(create)).GetProperty("Id").GetInt32();
+            id = (await ReadAsync(create)).GetProperty(resource == "countries" ? "id" : "Id").GetInt32();
             await LinkTargetAsync(resource, id);
             sentinels = await SentinelSnapshotAsync();
             counts = await fixture.SnapshotAsync();
@@ -70,21 +70,21 @@ public sealed class NameScalarSourceHttpTests(CatalogHttpFixture fixture) : ICla
             using var response = await client.PostAsJsonAsync(route, payload);
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             var body = await ReadAsync(response);
-            id = body.GetProperty("Id").GetInt32();
-            Assert.Equal(name, body.GetProperty(field).GetString());
+            id = body.GetProperty(resource == "countries" ? "id" : "Id").GetInt32();
+            Assert.Equal(name, body.GetProperty(resource == "countries" ? "name" : field).GetString());
             Assert.NotNull(response.Headers.Location);
             using var location = await client.GetAsync(response.Headers.Location);
             Assert.Equal(HttpStatusCode.OK, location.StatusCode);
-            Assert.Equal(id, (await ReadAsync(location)).GetProperty("Id").GetInt32());
+            Assert.Equal(id, (await ReadAsync(location)).GetProperty(resource == "countries" ? "id" : "Id").GetInt32());
         }
         using var detail = await client.GetAsync($"{route}/{id}");
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
-        Assert.Equal(name, (await ReadAsync(detail)).GetProperty(field).GetString());
+        Assert.Equal(name, (await ReadAsync(detail)).GetProperty(resource == "countries" ? "name" : field).GetString());
         using var list = await client.GetAsync(route);
         Assert.Equal(HttpStatusCode.OK, list.StatusCode);
         var listBody = await ReadAsync(list);
         var rows = resource == "materials" ? listBody.GetProperty("Items") : listBody;
-        Assert.Equal(name, rows.EnumerateArray().Single(row => row.GetProperty("Id").GetInt32() == id).GetProperty(field).GetString());
+        Assert.Equal(name, rows.EnumerateArray().Single(row => row.GetProperty(resource == "countries" ? "id" : "Id").GetInt32() == id).GetProperty(resource == "countries" ? "name" : field).GetString());
         var stored = await fixture.StoredAsync(resource, id);
         foreach (var pair in payload)
             if (pair.Key == field) Assert.Equal(name, stored.GetProperty(pair.Key).GetString());

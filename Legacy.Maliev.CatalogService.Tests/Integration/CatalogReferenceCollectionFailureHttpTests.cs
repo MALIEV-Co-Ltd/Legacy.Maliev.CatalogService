@@ -26,26 +26,26 @@ public sealed class CatalogReferenceCollectionFailureHttpTests(MaterialCollectio
         int sentinel = await CreateAsync(client, kind, "Spare");
         var before = await StoredAsync(kind, sentinel);
         await FreezeAsync(host, kind);
-        Assert.Equal("Before", Name((await RowsAsync(client, route)).Single(row => Id(row) == first), kind));
+        Assert.Equal("Before", Name((await RowsAsync(client, route)).Single(row => Id(row, kind) == first), kind));
         await fixture.DenyRemovalAsync();
         try
         {
             int added = await CreateAsync(client, kind, "  Added  ");
-            Assert.Equal("  Added  ", Name((await RowsAsync(client, route)).Single(row => Id(row) == added), kind));
+            Assert.Equal("  Added  ", Name((await RowsAsync(client, route)).Single(row => Id(row, kind) == added), kind));
             Assert.Equal(3, (await RowsAsync(client, route)).Length);
             var original = await StoredAsync(kind, first);
             using var updated = await client.PutAsJsonAsync($"{route}/{first}", Payload(kind, "  After  "));
             Assert.Equal(HttpStatusCode.NoContent, updated.StatusCode);
             var stored = await StoredAsync(kind, first);
-            Assert.Equal("  After  ", Name(stored, kind));
+            Assert.Equal("  After  ", stored.GetProperty(kind == "countries" ? "Name" : "ShortName").GetString());
             Assert.Equal(original.GetProperty("CreatedDate").GetRawText(), stored.GetProperty("CreatedDate").GetRawText());
-            Assert.Equal(stored.GetProperty("ModifiedDate").GetRawText(), (await RowsAsync(client, route)).Single(row => Id(row) == first).GetProperty("ModifiedDate").GetRawText());
-            Assert.Equal("  After  ", Name((await RowsAsync(client, route)).Single(row => Id(row) == first), kind));
+            Assert.Equal(stored.GetProperty("ModifiedDate").GetRawText(), (await RowsAsync(client, route)).Single(row => Id(row, kind) == first).GetProperty(kind == "countries" ? "modifiedDate" : "ModifiedDate").GetRawText());
+            Assert.Equal("  After  ", Name((await RowsAsync(client, route)).Single(row => Id(row, kind) == first), kind));
             Assert.Equal(before.GetRawText(), (await StoredAsync(kind, sentinel)).GetRawText());
             Assert.True(await fixture.CacheExistsAsync(Key(kind)));
             using var deleted = await client.DeleteAsync($"{route}/{first}");
             Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
-            Assert.DoesNotContain(await RowsAsync(client, route), row => Id(row) == first);
+            Assert.DoesNotContain(await RowsAsync(client, route), row => Id(row, kind) == first);
             using var detail = await client.GetAsync($"{route}/{first}");
             Assert.Equal(HttpStatusCode.NotFound, detail.StatusCode);
             foreach (int id in new[] { sentinel, added })
@@ -81,7 +81,7 @@ public sealed class CatalogReferenceCollectionFailureHttpTests(MaterialCollectio
             await barrier.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
             using var updated = await writer.PutAsJsonAsync($"{Route(kind)}/{id}", Payload(kind, " \t A \t "));
             Assert.Equal(HttpStatusCode.NoContent, updated.StatusCode);
-            Assert.Equal(" \t A \t ", Name(await StoredAsync(kind, id), kind));
+            Assert.Equal(" \t A \t ", (await StoredAsync(kind, id)).GetProperty(kind == "countries" ? "Name" : "ShortName").GetString());
             Assert.False(await fixture.CacheExistsAsync(Key(kind)));
             barrier.Release.TrySetResult();
             await late;
@@ -90,7 +90,7 @@ public sealed class CatalogReferenceCollectionFailureHttpTests(MaterialCollectio
             {
                 var row = Assert.Single(await RowsAsync(client, Route(kind)));
                 Assert.Equal(" \t A \t ", Name(row, kind));
-                Assert.Equal(old.GetProperty("CreatedDate").GetRawText(), row.GetProperty("CreatedDate").GetRawText());
+                Assert.Equal(old.GetProperty("CreatedDate").GetRawText(), row.GetProperty(kind == "countries" ? "createdDate" : "CreatedDate").GetRawText());
             }
             await AssertConsolidatedEmptyAsync();
         }
@@ -128,16 +128,16 @@ public sealed class CatalogReferenceCollectionFailureHttpTests(MaterialCollectio
             await context.SaveChangesAsync();
         }
         var rows = await RowsAsync(anonymous, Route(kind));
-        Assert.Equal("", Name(rows.Single(row => Id(row) == id), kind));
+        Assert.Equal("", Name(rows.Single(row => Id(row, kind) == id), kind));
         if (kind == "countries")
         {
-            Assert.Equal(id, Id(rows[0]));
-            Assert.Equal("th", rows[0].GetProperty("Iso2").GetString());
-            Assert.Equal("tha", rows[0].GetProperty("Iso3").GetString());
+            Assert.Equal(id, Id(rows[0], kind));
+            Assert.Equal("th", rows[0].GetProperty("iso2").GetString());
+            Assert.Equal("tha", rows[0].GetProperty("iso3").GetString());
         }
-        else Assert.Equal("  Literal  ", rows.Single(row => Id(row) == id).GetProperty("LongName").GetString());
+        else Assert.Equal("  Literal  ", rows.Single(row => Id(row, kind) == id).GetProperty("LongName").GetString());
         await fixture.DenyReadsAsync();
-        try { Assert.Equal("", Name((await RowsAsync(anonymous, Route(kind))).Single(row => Id(row) == id), kind)); }
+        try { Assert.Equal("", Name((await RowsAsync(anonymous, Route(kind))).Single(row => Id(row, kind) == id), kind)); }
         finally { await fixture.AllowCommandsAsync(); }
         Assert.Equal(2, await CountAsync(kind));
         await AssertConsolidatedEmptyAsync();
@@ -172,8 +172,8 @@ public sealed class CatalogReferenceCollectionFailureHttpTests(MaterialCollectio
 
     private static string Route(string kind) => kind == "countries" ? "/Countries" : "/Currencies";
     private static string Key(string kind) => kind + ":all:v1";
-    private static int Id(JsonElement row) => row.GetProperty("Id").GetInt32();
-    private static string? Name(JsonElement row, string kind) => row.GetProperty(kind == "countries" ? "Name" : "ShortName").GetString();
+    private static int Id(JsonElement row, string kind) => row.GetProperty(kind == "countries" ? "id" : "Id").GetInt32();
+    private static string? Name(JsonElement row, string kind) => row.GetProperty(kind == "countries" ? "name" : "ShortName").GetString();
     private static object Payload(string kind, string name) => kind == "countries"
         ? new { Name = name, Iso2 = "th", Iso3 = "tha" }
         : (object)new { ShortName = name, LongName = "Thai Baht" };
@@ -190,7 +190,7 @@ public sealed class CatalogReferenceCollectionFailureHttpTests(MaterialCollectio
         using var response = await client.PostAsJsonAsync(Route(kind), Payload(kind, name));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotNull(response.Headers.Location);
-        return Id(await ReadAsync(response));
+        return Id(await ReadAsync(response), kind);
     }
     private async Task<JsonElement> StoredAsync(string kind, int id)
     {

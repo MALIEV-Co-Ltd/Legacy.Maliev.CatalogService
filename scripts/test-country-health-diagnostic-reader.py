@@ -52,6 +52,33 @@ def main():
         else:
             raise AssertionError('Accepted invalid synthetic country: ' + name)
 
+    wire_names = {'Id': 'id', 'Name': 'name', 'Continent': 'continent', 'CountryCode': 'countryCode',
+        'Iso2': 'iso2', 'Iso3': 'iso3', 'CreatedDate': 'createdDate', 'ModifiedDate': 'modifiedDate'}
+    wire_valid = {wire_names[key]: value for key, value in valid.items()}
+    assert reader.country(encode(wire_valid), wire_camel=True) == valid
+    passed.append('valid-strict-camel-country-wire')
+    wire_invalid = [
+        ('pascal-wire', encode(valid)),
+        ('mixed-wire', encode(dict(wire_valid, Id=1))),
+        ('unknown-wire', encode(dict(wire_valid, customerEmail='synthetic@invalid'))),
+        ('duplicate-wire', encode(wire_valid).replace(b'"id":1', b'"id":1,"id":2')),
+        ('boolean-wire-id', encode(dict(wire_valid, id=True))),
+        ('oversized-wire-code', encode(dict(wire_valid, iso3='four'))),
+    ]
+    for name, data in wire_invalid:
+        try:
+            reader.country(data, wire_camel=True)
+        except (ValueError, UnicodeError):
+            passed.append('reject-' + name)
+        else:
+            raise AssertionError('Accepted invalid Country wire: ' + name)
+    try:
+        reader.country(encode(wire_valid))
+    except ValueError:
+        passed.append('reject-camel-database-row')
+    else:
+        raise AssertionError('Accepted camelCase own database schema')
+
     with tempfile.TemporaryDirectory(prefix='catalog-source-diagnostic-controls-') as temporary:
         repository = Path(temporary) / 'repository'
         repository.mkdir()
@@ -76,6 +103,8 @@ def main():
             fresh = dict(valid, Iso2=stored[0], Iso3=stored[1])
             for kind, value in (('created', created), ('fresh', fresh),
                     ('repeated', dict(created, Id=2)), ('after-put', fresh), ('after-db', fresh)):
+                if manifest.get('countryResponseCase') == 'camelCase' and kind != 'after-db':
+                    value = {wire_names[key]: item for key, item in value.items()}
                 (exports / (case + '-' + kind + '.json')).write_bytes(encode(value))
             observation = {'SyntheticOnly': True, 'DiagnosticOnly': True, 'SourceLiteralParityObserved': requested == stored,
                 'RequestedIso2': requested[0], 'RequestedIso3': requested[1], 'StoredIso2': stored[0], 'StoredIso3': stored[1],
@@ -134,6 +163,62 @@ def main():
         receipt = results / 'country-health-diagnostic-receipt.json'
         receipt.write_text(json.dumps(original, indent=2) + '\n')
 
+
+        # Synthetic immutable metadata heads exercise historical reads, never producer acceptance.
+        manifest_path = repository / 'scripts/country-health-diagnostic-expected.json'
+
+        def immutable_manifest_head(snapshot):
+            original_manifest = manifest_path.read_bytes()
+            try:
+                manifest_path.write_bytes(encode(snapshot))
+                subprocess.run(['git', '-C', str(repository), 'add', '--',
+                    'scripts/country-health-diagnostic-expected.json'], check=True, capture_output=True, timeout=30)
+                tree = subprocess.check_output(['git', '-C', str(repository), 'write-tree'], timeout=30).decode().strip()
+                return subprocess.run(['git', '-C', str(repository), '-c', 'user.name=Offline synthetic control',
+                    '-c', 'user.email=synthetic@invalid', '-c', 'commit.gpgsign=false', 'commit-tree', tree, '-p', head],
+                    input=b'Synthetic immutable schema controls only\n', check=True, capture_output=True, timeout=30).stdout.decode().strip()
+            finally:
+                manifest_path.write_bytes(original_manifest)
+                subprocess.run(['git', '-C', str(repository), 'add', '--',
+                    'scripts/country-health-diagnostic-expected.json'], check=True, capture_output=True, timeout=30)
+
+        for invalid_case in (None, False, 'PascalCase', 'CAMELCASE'):
+            invalid_manifest = copy.deepcopy(manifest)
+            invalid_manifest['countryResponseCase'] = invalid_case
+            invalid_head = immutable_manifest_head(invalid_manifest)
+            try:
+                reader.evidence(results, invalid_head)
+            except ValueError:
+                passed.append('reject-explicit-invalid-country-case-' + repr(invalid_case))
+            else:
+                raise AssertionError('Accepted invalid explicit wire schema metadata')
+        legacy_manifest = copy.deepcopy(manifest)
+        legacy_manifest.pop('countryResponseCase', None)
+        legacy_head = immutable_manifest_head(legacy_manifest)
+        wire_files = [exports / (case + '-' + kind + '.json') for case in manifest['cases']
+            for kind in ('created', 'fresh', 'repeated', 'after-put')]
+        current_wires = {path: path.read_bytes() for path in wire_files}
+        try:
+            for path, data in current_wires.items():
+                canonical = reader.country(data, wire_camel=manifest.get('countryResponseCase') == 'camelCase')
+                path.write_bytes(encode(canonical))
+            historical = reader.evidence(results, legacy_head)
+            assert historical['sourceHead'] == legacy_head and legacy_head != head
+            assert historical['sources']['scripts/country-health-diagnostic-expected.json'] != original['sources']['scripts/country-health-diagnostic-expected.json']
+            assert reader.evidence(results, legacy_head) == historical
+            passed.append('immutable-historical-pascal-head-readback')
+            try:
+                reader.evidence(results, head)
+            except ValueError:
+                passed.append('reject-pascal-wire-under-current-camel-head')
+            else:
+                raise AssertionError('Current head accepted historical wire schema')
+        finally:
+            for path, data in current_wires.items():
+                path.write_bytes(data)
+        assert subprocess.check_output(['git', '-C', str(repository), 'rev-parse', 'HEAD'], timeout=30).decode().strip() == head
+        assert reader.evidence(results, head) == original
+
         def reject(name, path, mutation):
             before = path.read_bytes()
             try:
@@ -164,8 +249,10 @@ def main():
                 item = reader.load(path.read_bytes())
                 if path.name.endswith('observation.json'):
                     item.update(StoredIso2='  ', StoredIso3='   ', SourceLiteralParityObserved=False)
-                else:
+                elif path.name.endswith('after-db.json') or manifest.get('countryResponseCase') is None:
                     item.update(Iso2='  ', Iso3='   ')
+                else:
+                    item.update(iso2='  ', iso3='   ')
                 path.write_bytes(encode(item))
             try:
                 reader.evidence(results, head)

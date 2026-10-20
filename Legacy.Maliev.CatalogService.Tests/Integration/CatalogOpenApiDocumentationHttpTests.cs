@@ -87,6 +87,36 @@ public sealed class CatalogOpenApiDocumentationHttpTests
         fixture.AssertNoDatabaseWork();
     }
 
+
+    [Fact]
+    public async Task Development_document_keeps_country_source_names_nullable_omission_and_other_response_names()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var fixture = new CatalogDocumentationHost("Development");
+        using var client = fixture.Host.CreateClient();
+        using var response = await client.GetAsync("/catalog/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var country = schemas.GetProperty("CountryResponse");
+        var properties = country.GetProperty("properties");
+        Assert.Equal(new[] { "id", "name", "continent", "countryCode", "iso2", "iso3", "createdDate", "modifiedDate" },
+            properties.EnumerateObject().Select(property => property.Name));
+        var required = country.GetProperty("required").EnumerateArray().Select(value => value.GetString()).ToArray();
+        Assert.Contains("id", required);
+        Assert.Contains("name", required);
+        foreach (var optional in new[] { "continent", "countryCode", "iso2", "iso3", "createdDate", "modifiedDate" })
+        {
+            Assert.DoesNotContain(optional, required);
+            Assert.Contains("null", properties.GetProperty(optional).GetProperty("type").EnumerateArray().Select(value => value.GetString()));
+        }
+        var colors = schemas.GetProperty("ColorResponse").GetProperty("properties");
+        Assert.True(colors.TryGetProperty("Id", out _));
+        Assert.True(colors.TryGetProperty("Name", out _));
+        Assert.False(colors.TryGetProperty("id", out _));
+        fixture.AssertNoDatabaseWork();
+    }
+
     [Fact]
     public async Task Production_keeps_documentation_unmapped_instead_of_exposing_development_metadata()
     {

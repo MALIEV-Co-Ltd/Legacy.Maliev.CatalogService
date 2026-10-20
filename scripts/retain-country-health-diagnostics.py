@@ -84,11 +84,16 @@ def git(*arguments):
     return subprocess.check_output(['git', '-C', str(REPOSITORY), *arguments], timeout=30)
 
 
-def country(data):
+def country(data, wire_camel=False):
     value = load(data)
-    allowed = {'Id', 'Name', 'Continent', 'CountryCode', 'Iso2', 'Iso3', 'CreatedDate', 'ModifiedDate'}
+    names = {'id': 'Id', 'name': 'Name', 'continent': 'Continent', 'countryCode': 'CountryCode',
+        'iso2': 'Iso2', 'iso3': 'Iso3', 'createdDate': 'CreatedDate', 'modifiedDate': 'ModifiedDate'}
+    allowed = set(names) if wire_camel else set(names.values())
+    required = {'id', 'name', 'createdDate', 'modifiedDate'} if wire_camel else {'Id', 'Name', 'CreatedDate', 'ModifiedDate'}
     require('Exact synthetic Country schema required', isinstance(value, dict) and set(value) <= allowed
-        and {'Id', 'Name', 'CreatedDate', 'ModifiedDate'} <= set(value))
+        and required <= set(value))
+    if wire_camel:
+        value = {names[key]: item for key, item in value.items()}
     require('Synthetic Country identity required', type(value['Id']) is int and value['Id'] > 0
         and value['Name'] == 'Synthetic ISO diagnostic')
     for key in ('Continent', 'CountryCode'):
@@ -109,6 +114,8 @@ def evidence(root, head):
     require('Exact owned diagnostic directory required', folder.is_dir() and not folder.is_symlink()
         and folder.resolve().parent == root.resolve())
     manifest = load(git('show', head + ':scripts/country-health-diagnostic-expected.json'))
+    wire_case = manifest.get('countryResponseCase')
+    require('Explicit current or original historical Country wire schema required', 'countryResponseCase' not in manifest or wire_case == 'camelCase')
     require('Diagnostic scope must remain explicit', manifest['diagnosticAcceptanceIsNotSourceParityAcceptance'] is True
         and manifest['actualAuthOrDeploymentProven'] is False and manifest['forecast'] == 20)
     names = {case + '-' + suffix for case in manifest['cases'] for suffix in
@@ -128,7 +135,8 @@ def evidence(root, head):
         data = bounded(folder / name, 16 * 1024)
         wires.append({'file': name, 'sha256': digest(data), 'bytes': len(data)})
     for case, requested in manifest['cases'].items():
-        payloads = {kind: country(bounded(folder / (case + '-' + kind + '.json'), 16 * 1024))
+        payloads = {kind: country(bounded(folder / (case + '-' + kind + '.json'), 16 * 1024),
+            wire_camel=wire_case == 'camelCase' and kind != 'after-db')
             for kind in ('created', 'fresh', 'repeated', 'after-put', 'after-db')}
         created, fresh, repeated, after = (payloads[key] for key in ('created', 'fresh', 'repeated', 'after-put'))
         require('Actual created/repeated identities and original row required', created['Id'] == fresh['Id'] == after['Id']
