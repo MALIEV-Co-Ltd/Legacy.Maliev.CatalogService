@@ -58,7 +58,7 @@ public sealed class CountryOptionalScalarSourceHttpTests(CatalogHttpFixture fixt
         {
             using var create = await client.PostAsJsonAsync("/Countries", payload);
             Assert.Equal(HttpStatusCode.Created, create.StatusCode);
-            id = (await ReadAsync(create)).GetProperty("Id").GetInt32();
+            id = (await ReadAsync(create)).GetProperty("id").GetInt32();
             counts = await fixture.SnapshotAsync();
             previous = await fixture.StoredAsync("countries", id);
             using var prime = await client.GetAsync("/Countries");
@@ -77,19 +77,19 @@ public sealed class CountryOptionalScalarSourceHttpTests(CatalogHttpFixture fixt
             using var response = await client.PostAsJsonAsync("/Countries", payload);
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             var body = await ReadAsync(response);
-            id = body.GetProperty("Id").GetInt32();
+            id = body.GetProperty("id").GetInt32();
             AssertWireValue(body, propertyName, expected);
             Assert.NotNull(response.Headers.Location);
             using var location = await client.GetAsync(response.Headers.Location);
             Assert.Equal(HttpStatusCode.OK, location.StatusCode);
-            Assert.Equal(id, (await ReadAsync(location)).GetProperty("Id").GetInt32());
+            Assert.Equal(id, (await ReadAsync(location)).GetProperty("id").GetInt32());
         }
         using var detail = await client.GetAsync($"/Countries/{id}");
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
         AssertWireValue(await ReadAsync(detail), propertyName, expected);
         using var list = await client.GetAsync("/Countries");
         Assert.Equal(HttpStatusCode.OK, list.StatusCode);
-        AssertWireValue((await ReadAsync(list)).EnumerateArray().Single(row => row.GetProperty("Id").GetInt32() == id), propertyName, expected);
+        AssertWireValue((await ReadAsync(list)).EnumerateArray().Single(row => row.GetProperty("id").GetInt32() == id), propertyName, expected);
         var stored = await fixture.StoredAsync("countries", id);
         Assert.Equal(expected, stored.GetProperty(propertyName).GetString());
         foreach (var pair in payload.Where(pair => pair.Key != propertyName))
@@ -138,6 +138,7 @@ public sealed class CountryOptionalScalarSourceHttpTests(CatalogHttpFixture fixt
 
     private static void AssertWireValue(JsonElement row, string propertyName, string? expected)
     {
+        propertyName = JsonNamingPolicy.CamelCase.ConvertName(propertyName);
         if (expected is null) Assert.False(row.TryGetProperty(propertyName, out _));
         else Assert.Equal(expected, row.GetProperty(propertyName).GetString());
     }

@@ -109,10 +109,10 @@ public sealed class CatalogControllerContractTests
         var json = JsonSerializer.Serialize(new CountryResponse(7, "Thailand", null, "+66", "TH", "THA", null, null), options);
         using var document = JsonDocument.Parse(json);
 
-        Assert.Contains("\"Id\":7", json, StringComparison.Ordinal);
-        Assert.Equal("+66", document.RootElement.GetProperty("CountryCode").GetString());
-        Assert.DoesNotContain("\"id\"", json, StringComparison.Ordinal);
-        Assert.DoesNotContain("Continent", json, StringComparison.Ordinal);
+        Assert.Contains("\"id\":7", json, StringComparison.Ordinal);
+        Assert.Equal("+66", document.RootElement.GetProperty("countryCode").GetString());
+        Assert.DoesNotContain("\"Id\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("continent", json, StringComparison.Ordinal);
     }
 
     private static IEnumerable<string> GetEndpoints(Type controllerType)
