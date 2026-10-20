@@ -121,6 +121,8 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
     [Theory]
     [InlineData(400, "provider-internal-sentinel")]
     [InlineData(200, "{malformed-provider-internal-sentinel")]
+    [InlineData(200, "{\"rates\":{\"provider-internal-sentinel\":{}},\"base\":\"THB\",\"date\":\"2026-10-03\"}")]
+    [InlineData(200, "{\"rates\":{\"provider-internal-sentinel\":[]},\"base\":\"THB\",\"date\":\"2026-10-03\"}")]
     public async Task Route_ProviderFailure_DoesNotReturnSuccessOrLeakProviderBody(int status, string body)
     {
         providerStatus = status;
@@ -147,6 +149,40 @@ public sealed class CatalogExchangeRateHttpTests : IAsyncLifetime
         using var wire = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("THB", wire.RootElement.GetProperty("Base").GetString());
         Assert.Equal("0.03081001", wire.RootElement.GetProperty("Rates").GetProperty("USD").GetString());
+    }
+
+    [Theory]
+    [InlineData("0.123456789012345678901234567890123456789", "0.123456789012345678901234567890123456789")]
+    [InlineData("79228162514264337593543950336", "79228162514264337593543950336")]
+    [InlineData("1e+03", "1e+03")]
+    [InlineData("1e309", "1e309")]
+    [InlineData("1e-400", "1e-400")]
+    [InlineData("-0", "-0")]
+    [InlineData("\"0.030810010000000000000000000000000001\"", "0.030810010000000000000000000000000001")]
+    [InlineData("\" 0.03081 \"", " 0.03081 ")]
+    [InlineData("true", "true")]
+    [InlineData("null", null)]
+    public async Task Route_StandardJsonRateScalars_PreserveOriginalStringsOnTheWire(string token, string? expected)
+    {
+        var original = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string?>>("{\"USD\":" + token + "}")!;
+        Assert.Equal(expected, original["USD"]);
+        providerBody = "{\"base\":\"THB\",\"date\":\"2026-10-03\",\"rates\":{\"USD\":" + token + "}}";
+        using var client = Client("legacy-catalog.currencies.read");
+
+        using var response = await client.GetAsync("/currencies/exchangerates?baseCurrency=THB&targetCurrency=USD");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(1, calls);
+        Assert.Equal("?amount=1&from=THB&to=USD", query);
+        using var wire = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("THB", wire.RootElement.GetProperty("Base").GetString());
+        Assert.Equal(new DateTime(2026, 10, 3), wire.RootElement.GetProperty("Date").GetDateTime());
+        var rates = wire.RootElement.GetProperty("Rates");
+        Assert.Single(rates.EnumerateObject());
+        var rate = rates.GetProperty("USD");
+        Assert.Equal(expected is null ? JsonValueKind.Null : JsonValueKind.String, rate.ValueKind);
+        Assert.Equal(expected, rate.GetString());
+        Assert.False(wire.RootElement.TryGetProperty("rates", out _));
     }
 
     private HttpClient Client(string? permission)

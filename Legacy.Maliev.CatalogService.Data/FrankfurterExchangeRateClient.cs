@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using Legacy.Maliev.CatalogService.Application.Interfaces;
 using Legacy.Maliev.CatalogService.Application.Models;
@@ -18,9 +17,11 @@ public sealed class FrankfurterExchangeRateClient(HttpClient httpClient) : IExch
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         var root = document.RootElement;
+        var scalarOptions = new JsonSerializerOptions();
+        scalarOptions.Converters.Add(new LegacyScalarStringJsonConverter());
         var rates = root.GetProperty("rates").EnumerateObject().ToDictionary(
             property => property.Name,
-            property => property.Value.GetDecimal().ToString(CultureInfo.InvariantCulture),
+            property => property.Value.Deserialize<string>(scalarOptions)!,
             StringComparer.Ordinal);
         return new(
             root.GetProperty("base").GetString() ?? from,
