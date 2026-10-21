@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Legacy.Maliev.CatalogService.Api.Controllers;
+using Legacy.Maliev.CatalogService.Application.Interfaces;
 using Legacy.Maliev.CatalogService.Application.Models;
 using Maliev.Aspire.ServiceDefaults.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -96,6 +97,35 @@ public sealed class CatalogControllerContractTests
             var permission = method.GetCustomAttribute<RequirePermissionAttribute>();
             Assert.NotNull(permission);
         }
+    }
+
+    [Theory]
+    [InlineData("material", false)]
+    [InlineData("material", true)]
+    [InlineData("color", false)]
+    [InlineData("color", true)]
+    [InlineData("material-group", false)]
+    [InlineData("material-group", true)]
+    [InlineData("surface-finish", false)]
+    [InlineData("surface-finish", true)]
+    public async Task MaterialCatalog_NullDirectRequestsReturnBadRequestWithoutServiceCalls(string entity, bool update)
+    {
+        var service = new Moq.Mock<ICatalogService>(Moq.MockBehavior.Strict);
+        Task<ActionResult> invocation = (entity, update) switch
+        {
+            ("material", false) => new MaterialsController(service.Object).CreateMaterialAsync(null!, CancellationToken.None),
+            ("material", true) => new MaterialsController(service.Object).UpdateMaterialAsync(7, null!, CancellationToken.None),
+            ("color", false) => new ColorsController(service.Object).CreateColorAsync(null!, CancellationToken.None),
+            ("color", true) => new ColorsController(service.Object).UpdateColorAsync(7, null!, CancellationToken.None),
+            ("material-group", false) => new MaterialGroupsController(service.Object).CreateMaterialGroupAsync(null!, CancellationToken.None),
+            ("material-group", true) => new MaterialGroupsController(service.Object).UpdateMaterialGroupAsync(7, null!, CancellationToken.None),
+            ("surface-finish", false) => new SurfaceFinishesController(service.Object).CreateSurfaceFinishAsync(null!, CancellationToken.None),
+            ("surface-finish", true) => new SurfaceFinishesController(service.Object).UpdateSurfaceFinishAsync(7, null!, CancellationToken.None),
+            _ => throw new ArgumentOutOfRangeException(nameof(entity)),
+        };
+
+        Assert.IsType<BadRequestResult>(await invocation);
+        service.VerifyNoOtherCalls();
     }
 
     [Fact]

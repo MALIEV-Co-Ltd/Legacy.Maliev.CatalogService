@@ -18,6 +18,11 @@ public sealed class MaterialsController(ICatalogService service) : ControllerBas
     [RequirePermission(CatalogPermissions.MaterialsCreate)]
     public async Task<ActionResult> CreateMaterialAsync(UpsertMaterialRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
         var created = await service.CreateMaterialAsync(request, cancellationToken);
         return CreatedAtRoute("GetMaterial", new { id = created.Id }, created);
     }
@@ -101,6 +106,13 @@ public sealed class MaterialsController(ICatalogService service) : ControllerBas
     /// <summary>Updates a material.</summary>
     [HttpPut("{id:int}")]
     [RequirePermission(CatalogPermissions.MaterialsUpdate)]
-    public async Task<ActionResult> UpdateMaterialAsync(int id, UpsertMaterialRequest request, CancellationToken cancellationToken) =>
-        await service.UpdateMaterialAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    public async Task<ActionResult> UpdateMaterialAsync(int id, UpsertMaterialRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
+        return await service.UpdateMaterialAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    }
 }
