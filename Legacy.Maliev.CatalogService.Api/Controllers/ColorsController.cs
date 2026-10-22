@@ -18,6 +18,11 @@ public sealed class ColorsController(ICatalogService service) : ControllerBase
     [RequirePermission(CatalogPermissions.ColorsCreate)]
     public async Task<ActionResult> CreateColorAsync(UpsertColorRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
         var created = await service.CreateColorAsync(request, cancellationToken);
         return CreatedAtRoute("GetColor", new { id = created.Id }, created);
     }
@@ -89,6 +94,13 @@ public sealed class ColorsController(ICatalogService service) : ControllerBase
     /// <summary>Updates a color.</summary>
     [HttpPut("{id:int}")]
     [RequirePermission(CatalogPermissions.ColorsUpdate)]
-    public async Task<ActionResult> UpdateColorAsync(int id, UpsertColorRequest request, CancellationToken cancellationToken) =>
-        await service.UpdateColorAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    public async Task<ActionResult> UpdateColorAsync(int id, UpsertColorRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
+        return await service.UpdateColorAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    }
 }

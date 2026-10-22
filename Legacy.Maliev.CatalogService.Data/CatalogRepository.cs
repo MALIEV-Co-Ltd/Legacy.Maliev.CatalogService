@@ -40,9 +40,20 @@ public sealed class CatalogRepository(
         var context = ContextFor<TEntity>();
         if (entity is Material material)
         {
-            await catalogDbContext.MaterialHasColors.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(cancellationToken);
-            await catalogDbContext.MaterialHasSuppliers.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(cancellationToken);
-            await catalogDbContext.MaterialHasSurfaceFinishes.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(cancellationToken);
+            catalogDbContext.Materials.Remove(material);
+            await catalogDbContext.Database.CreateExecutionStrategy().ExecuteAsync(async token =>
+            {
+                await using var transaction = await catalogDbContext.Database.BeginTransactionAsync(token);
+                await catalogDbContext.MaterialHasColors.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(token);
+                await catalogDbContext.MaterialHasSuppliers.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(token);
+                await catalogDbContext.MaterialHasSurfaceFinishes.Where(link => link.MaterialId == material.Id).ExecuteDeleteAsync(token);
+                // Keep Deleted state until commit succeeds so a rolled-back attempt can be replayed.
+                await catalogDbContext.SaveChangesAsync(acceptAllChangesOnSuccess: false, cancellationToken: token);
+                await transaction.CommitAsync(token);
+            }, cancellationToken);
+            // An ambiguous commit replay must still delete the tracked row; a missing row fails concurrency.
+            catalogDbContext.ChangeTracker.AcceptAllChanges();
+            return;
         }
 
         context.Set<TEntity>().Remove(entity);
@@ -58,6 +69,10 @@ public sealed class CatalogRepository(
         await catalogDbContext.MaterialHasSuppliers.Where(link => link.MaterialId == materialId).AsNoTracking().ToArrayAsync(cancellationToken);
 
     /// <inheritdoc />
+    public Task<bool> MaterialColorExistsAsync(int materialId, int colorId, CancellationToken cancellationToken) =>
+        catalogDbContext.MaterialHasColors.AnyAsync(link => link.MaterialId == materialId && link.ColorId == colorId, cancellationToken);
+
+    /// <inheritdoc />
     public Task<MaterialHasColor?> FindMaterialColorAsync(int materialId, int colorId, CancellationToken cancellationToken) =>
         catalogDbContext.MaterialHasColors.SingleOrDefaultAsync(link => link.MaterialId == materialId && link.ColorId == colorId, cancellationToken);
 
@@ -65,6 +80,10 @@ public sealed class CatalogRepository(
     public async Task<IReadOnlyList<Color>> ListMaterialColorsAsync(int materialId, CancellationToken cancellationToken) =>
         await catalogDbContext.MaterialHasColors.Where(link => link.MaterialId == materialId)
             .Select(link => link.Color!).AsNoTracking().ToArrayAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> MaterialSurfaceFinishExistsAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken) =>
+        catalogDbContext.MaterialHasSurfaceFinishes.AnyAsync(link => link.MaterialId == materialId && link.SurfaceFinishId == surfaceFinishId, cancellationToken);
 
     /// <inheritdoc />
     public Task<MaterialHasSurfaceFinish?> FindMaterialSurfaceFinishAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken) =>

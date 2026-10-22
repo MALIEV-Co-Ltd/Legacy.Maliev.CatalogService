@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Legacy.Maliev.CatalogService.Application.Models;
 
@@ -44,34 +45,42 @@ public enum MaterialSortType
 }
 
 /// <summary>Legacy-compatible country response.</summary>
-public sealed record CountryResponse(int Id, string Name, string? Continent, string? CountryCode, string? Iso2, string? Iso3, DateTime? CreatedDate, DateTime? ModifiedDate);
+public sealed record CountryResponse(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("continent")] string? Continent,
+    [property: JsonPropertyName("countryCode")] string? CountryCode,
+    [property: JsonPropertyName("iso2")] string? Iso2,
+    [property: JsonPropertyName("iso3")] string? Iso3,
+    [property: JsonPropertyName("createdDate")] DateTime? CreatedDate,
+    [property: JsonPropertyName("modifiedDate")] DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible country create or update payload.</summary>
-public sealed record UpsertCountryRequest([Required, MaxLength(50)] string Name, [MaxLength(50)] string? Continent, [MaxLength(30)] string? CountryCode, [MaxLength(2)] string? Iso2, [MaxLength(3)] string? Iso3);
+public sealed record UpsertCountryRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(50)] string? Continent = null, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(30)] string? CountryCode = null, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(2)] string? Iso2 = null, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(3)] string? Iso3 = null);
 
 /// <summary>Legacy-compatible currency response.</summary>
 public sealed record CurrencyResponse(int Id, string ShortName, string LongName, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible currency create or update payload.</summary>
-public sealed record UpsertCurrencyRequest([Required, MaxLength(10)] string ShortName, [Required, MaxLength(50)] string LongName);
+public sealed record UpsertCurrencyRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(10)] string ShortName, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string LongName);
 
 /// <summary>Legacy-compatible material group response.</summary>
 public sealed record MaterialGroupResponse(int Id, string Name, string? Description, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible material group payload.</summary>
-public sealed record UpsertMaterialGroupRequest([Required, MaxLength(50)] string Name, [MaxLength(50)] string? Description);
+public sealed record UpsertMaterialGroupRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name, [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][MaxLength(50)] string? Description = null);
 
 /// <summary>Legacy-compatible color response.</summary>
 public sealed record ColorResponse(int Id, string Name, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible color payload.</summary>
-public sealed record UpsertColorRequest([Required, MaxLength(50)] string Name);
+public sealed record UpsertColorRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name);
 
 /// <summary>Legacy-compatible surface finish response.</summary>
 public sealed record SurfaceFinishResponse(int Id, string Name, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible surface finish payload.</summary>
-public sealed record UpsertSurfaceFinishRequest([Required, MaxLength(50)] string Name);
+public sealed record UpsertSurfaceFinishRequest([property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name);
 
 /// <summary>Legacy-compatible material response.</summary>
 public sealed record MaterialResponse(
@@ -116,40 +125,40 @@ public sealed record MaterialResponse(
 
 /// <summary>Legacy-compatible material create or update payload.</summary>
 public sealed record UpsertMaterialRequest(
-    int MaterialGroupId,
-    bool Machinable,
-    bool Printable,
-    [Required, MaxLength(50)] string Name,
-    string? Aisi,
-    string? Din,
-    string? Bts,
-    string? Jis,
-    string? Uns,
-    string? En,
-    string? Afnor,
-    string? Uni,
-    string? Sis,
-    string? Sae,
-    string? Astm,
-    string? Ams,
-    string? MaterialNumber,
-    string? ManufacturerReference,
-    decimal? HardnessBrinell,
-    decimal? HardnessKnoop,
-    decimal? HardnessRockwellA,
-    decimal? HardnessRockwellB,
-    decimal? HardnessRockwellC,
-    decimal? HardnessVickers,
-    decimal? DensityKilogramPerCubicMeter,
-    decimal? TensileStrengthUltimateGigaPascal,
-    decimal? TensileStrengthYieldMegaPascal,
-    decimal? MachinabilityPercent,
-    decimal? ShearModulusGigaPascal,
-    decimal? ThermalConductivityWattPerMeterKelvin,
-    string? Url,
+    [property: JsonConverter(typeof(LegacyMaterialGroupIdJsonConverter))] int MaterialGroupId,
+    [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Machinable,
+    [property: JsonConverter(typeof(LegacyQuotedBooleanJsonConverter))] bool Printable,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))][Required(AllowEmptyStrings = true), MaxLength(50)] string Name,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Aisi,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Din,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Bts,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Jis,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Uns,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? En,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Afnor,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Uni,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Sis,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Sae,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Astm,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Ams,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? MaterialNumber,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? ManufacturerReference,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? HardnessBrinell,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? HardnessKnoop,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? HardnessRockwellA,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? HardnessRockwellB,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? HardnessRockwellC,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? HardnessVickers,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? DensityKilogramPerCubicMeter,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? TensileStrengthUltimateGigaPascal,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? TensileStrengthYieldMegaPascal,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? MachinabilityPercent,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? ShearModulusGigaPascal,
+    [property: JsonConverter(typeof(LegacyPhysicalDecimalJsonConverter))] decimal? ThermalConductivityWattPerMeterKelvin,
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Url,
     decimal? PricePerKilogram,
     int? CurrencyId,
-    string? Comment);
+    [property: JsonConverter(typeof(LegacyScalarStringJsonConverter))] string? Comment);
 
 /// <summary>Legacy-compatible paginated material response.</summary>
 public sealed record PaginatedMaterialResponse(
@@ -170,4 +179,4 @@ public sealed record MaterialSupplierResponse(int Id, int MaterialId, int Suppli
 public sealed record MaterialSurfaceFinishResponse(int Id, int MaterialId, int SurfaceFinishId, DateTime? CreatedDate, DateTime? ModifiedDate);
 
 /// <summary>Legacy-compatible exchange-rate response.</summary>
-public sealed record ExchangeRateResponse(string Base, DateTime Date, IReadOnlyDictionary<string, string> Rates);
+public sealed record ExchangeRateResponse(string? Base, DateTime Date, IReadOnlyDictionary<string, string>? Rates);

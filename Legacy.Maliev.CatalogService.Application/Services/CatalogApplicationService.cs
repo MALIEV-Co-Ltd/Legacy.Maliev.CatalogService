@@ -19,7 +19,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<CountryResponse>> GetCountriesAsync(CancellationToken cancellationToken) =>
-        (await GetListAsync<Country, CountryResponse>(CountriesCacheKey, ToResponse, cancellationToken))
+        (await GetRepositoryListAsync<Country, CountryResponse>(ToResponse, cancellationToken))
             .OrderBy(country => country.Name).ToArray();
 
     /// <inheritdoc />
@@ -50,7 +50,7 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<CurrencyResponse>> GetCurrenciesAsync(CancellationToken cancellationToken) =>
-        await GetListAsync<Currency, CurrencyResponse>(CurrenciesCacheKey, ToResponse, cancellationToken);
+        await GetRepositoryListAsync<Currency, CurrencyResponse>(ToResponse, cancellationToken);
 
     /// <inheritdoc />
     public async Task<CurrencyResponse?> GetCurrencyAsync(int id, CancellationToken cancellationToken) =>
@@ -189,7 +189,7 @@ public sealed class CatalogApplicationService(
         var pageIndex = Math.Max(index ?? 1, 1);
         var pageSize = Math.Max(size ?? materialArray.Length, 1);
         var totalPages = materialArray.Length == 0 ? 0 : (int)Math.Ceiling(materialArray.Length / (double)pageSize);
-        var items = materialArray.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToArray();
+        var items = size == 0 ? Array.Empty<MaterialResponse>() : materialArray.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToArray();
         return new(items, pageIndex, totalPages, materialArray.Length, pageIndex < totalPages, pageIndex > 1);
     }
 
@@ -199,11 +199,11 @@ public sealed class CatalogApplicationService(
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialResponse>> GetMachinableMaterialsAsync(CancellationToken cancellationToken) =>
-        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Machinable).ToArray();
+        (await GetRepositoryListAsync<Material, MaterialResponse>(ToResponse, cancellationToken)).Where(material => material.Machinable).ToArray();
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<MaterialResponse>> GetPrintableMaterialsAsync(CancellationToken cancellationToken) =>
-        (await GetMaterialsWithGroupsAsync(cancellationToken)).Where(material => material.Printable).ToArray();
+        (await GetRepositoryListAsync<Material, MaterialResponse>(ToResponse, cancellationToken)).Where(material => material.Printable).ToArray();
 
     /// <inheritdoc />
     public async Task<MaterialResponse> CreateMaterialAsync(UpsertMaterialRequest request, CancellationToken cancellationToken)
@@ -244,7 +244,7 @@ public sealed class CatalogApplicationService(
     /// <inheritdoc />
     public async Task<MaterialColorResponse?> CreateMaterialColorAsync(int materialId, int colorId, CancellationToken cancellationToken)
     {
-        if (await repository.FindMaterialColorAsync(materialId, colorId, cancellationToken) is not null) return null;
+        if (await repository.MaterialColorExistsAsync(materialId, colorId, cancellationToken)) return null;
         var now = UtcNow;
         var link = new MaterialHasColor { MaterialId = materialId, ColorId = colorId, CreatedDate = now, ModifiedDate = now };
         await AddAsync(link, cancellationToken);
@@ -274,7 +274,7 @@ public sealed class CatalogApplicationService(
     /// <inheritdoc />
     public async Task<MaterialSurfaceFinishResponse?> CreateMaterialSurfaceFinishAsync(int materialId, int surfaceFinishId, CancellationToken cancellationToken)
     {
-        if (await repository.FindMaterialSurfaceFinishAsync(materialId, surfaceFinishId, cancellationToken) is not null) return null;
+        if (await repository.MaterialSurfaceFinishExistsAsync(materialId, surfaceFinishId, cancellationToken)) return null;
         var now = UtcNow;
         var link = new MaterialHasSurfaceFinish { MaterialId = materialId, SurfaceFinishId = surfaceFinishId, CreatedDate = now, ModifiedDate = now };
         await AddAsync(link, cancellationToken);

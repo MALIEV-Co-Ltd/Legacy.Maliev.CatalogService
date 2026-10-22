@@ -18,6 +18,11 @@ public sealed class MaterialGroupsController(ICatalogService service) : Controll
     [RequirePermission(CatalogPermissions.MaterialGroupsCreate)]
     public async Task<ActionResult> CreateMaterialGroupAsync(UpsertMaterialGroupRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
         var created = await service.CreateMaterialGroupAsync(request, cancellationToken);
         return CreatedAtRoute("GetMaterialGroup", new { id = created.Id }, created);
     }
@@ -49,6 +54,13 @@ public sealed class MaterialGroupsController(ICatalogService service) : Controll
     /// <summary>Updates a material group.</summary>
     [HttpPut("{id:int}")]
     [RequirePermission(CatalogPermissions.MaterialGroupsUpdate)]
-    public async Task<ActionResult> UpdateMaterialGroupAsync(int id, UpsertMaterialGroupRequest request, CancellationToken cancellationToken) =>
-        await service.UpdateMaterialGroupAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    public async Task<ActionResult> UpdateMaterialGroupAsync(int id, UpsertMaterialGroupRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
+        return await service.UpdateMaterialGroupAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    }
 }

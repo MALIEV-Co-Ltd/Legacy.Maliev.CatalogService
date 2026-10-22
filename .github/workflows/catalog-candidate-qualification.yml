@@ -5,8 +5,10 @@ on:
     paths:
       - scripts/materialize_catalog_candidate.py
       - scripts/tests/test_materialize_catalog_candidate.py
+      - scripts/tests/fixtures/catalog-v16-owned-supervisor.py.txt
       - scripts/catalog-candidate-policy.json
       - scripts/probe_catalog_controller.py
+      - scripts/catalog-ordinary-controller-seal.json
       - scripts/tests/test_catalog_controller.py
       - scripts/run_catalog_build_grant.py
       - scripts/tests/test_catalog_build_grant.py
@@ -27,11 +29,11 @@ on:
         required: false
         type: string
       manifest_blob:
-        description: Same-repository immutable blob of reviewed V11 manifest
+        description: Same-repository immutable blob of reviewed business successor manifest
         required: true
         type: string
       capsule_blob:
-        description: Same-repository immutable blob of exact24 raw Catalog postimages
+        description: Same-repository immutable blob of exact50 raw Catalog postimages
         required: true
         type: string
 
@@ -131,7 +133,7 @@ jobs:
             MALIEV_CATALOG_EVIDENCE_UID="$(id -u)" MALIEV_CATALOG_EVIDENCE_GID="$(id -g)" \
             CATALOG_BUILD_EVENT_PATH="$GITHUB_EVENT_PATH" GITHUB_SHA="$GITHUB_SHA" GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" \
             python3 -B ../scripts/run_catalog_build_grant.py "$sdk"
-      - name: Actual owned build first, focused tests, complete374, format and typed audit
+      - name: Actual owned build first, focused tests, complete567, format and typed audit
         if: inputs.mode == 'sealed-native'
         working-directory: candidate
         shell: bash
@@ -173,6 +175,7 @@ jobs:
             candidate/runner-results/owned-*/published-*.json
             candidate/runner-results/owned-*/absent-*.json
             candidate/runner-results/owned-*/container-*.json
+            candidate/runner-results/owned-*/inspect-*.json
           if-no-files-found: error
           retention-days: 7
           overwrite: false

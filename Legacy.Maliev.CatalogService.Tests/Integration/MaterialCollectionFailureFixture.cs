@@ -33,6 +33,9 @@ public sealed class MaterialCollectionFailureFixture : IAsyncLifetime
     private string Connection(string database) => new NpgsqlConnectionStringBuilder(postgres.GetConnectionString()) { Database = database }.ConnectionString;
     public CatalogDbContext Context() => new(new DbContextOptionsBuilder<CatalogDbContext>().UseNpgsql(Connection("collection_catalog")).Options);
 
+    public CatalogCountryDbContext CountryContext() => new(new DbContextOptionsBuilder<CatalogCountryDbContext>().UseNpgsql(Connection("collection_country")).Options);
+    public CatalogCurrencyDbContext CurrencyContext() => new(new DbContextOptionsBuilder<CatalogCurrencyDbContext>().UseNpgsql(Connection("collection_currency")).Options);
+
     public async Task InitializeAsync()
     {
         await postgres.StartAsync();
@@ -58,6 +61,10 @@ public sealed class MaterialCollectionFailureFixture : IAsyncLifetime
     {
         await AllowCommandsAsync();
         await admin!.GetServer(redis.Hostname, redis.GetMappedPublicPort(6379)).FlushDatabaseAsync();
+        await using var country = CountryContext();
+        await country.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Country\" RESTART IDENTITY CASCADE");
+        await using var currency = CurrencyContext();
+        await currency.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Currency\" RESTART IDENTITY CASCADE");
         await using var context = Context();
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Material\", \"MaterialGroup\", \"Color\", \"SurfaceFinish\", \"MaterialHasColor\", \"MaterialHasSupplier\", \"MaterialHasSurfaceFinish\" RESTART IDENTITY CASCADE");
         context.AddRange(new MaterialGroup { Name = "Before" }, new MaterialGroup { Name = "Spare" },
@@ -132,7 +139,9 @@ public sealed class MaterialCollectionFailureFixture : IAsyncLifetime
             "read-only" => new[] { "legacy-catalog.materials.read" },
             "wildcard" => new[] { "*" },
             _ => new[] { "materials", "material-groups", "colors", "surface-finishes" }
-                .SelectMany(resource => new[] { "read", "update", "delete" }.Select(action => $"legacy-catalog.{resource}.{action}")).ToArray(),
+                .SelectMany(resource => new[] { "read", "update", "delete" }.Select(action => $"legacy-catalog.{resource}.{action}"))
+                .Concat(new[] { "countries", "currencies" }.SelectMany(resource => new[] { "create", "read", "update", "delete" }
+                    .Select(action => $"legacy-catalog.{resource}.{action}"))).ToArray(),
         };
         using var otherRsa = RSA.Create(2048);
         var now = DateTime.UtcNow;

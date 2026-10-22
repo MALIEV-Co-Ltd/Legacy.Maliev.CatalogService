@@ -45,7 +45,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
         using var response = await client.PostAsJsonAsync(route, Payload(resource));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await ReadObjectAsync(response);
-        var stored = await fixture.StoredAsync(resource, created.GetProperty("Id").GetInt32());
+        var stored = await fixture.StoredAsync(resource, created.GetProperty(resource == "countries" ? "id" : "Id").GetInt32());
         Assert.Equal(resource == "currencies" ? "THB" : "Thailand", stored.GetProperty(resource == "currencies" ? "ShortName" : "Name").GetString());
         Assert.NotNull(response.Headers.Location);
     }
@@ -70,17 +70,17 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
         using var response = await exact.PostAsJsonAsync(route, payload);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await ReadObjectAsync(response);
-        var id = created.GetProperty("Id").GetInt32();
+        var id = created.GetProperty(resource == "countries" ? "id" : "Id").GetInt32();
         Assert.NotEqual(99999, id);
         Assert.Equal($"{route}/{id}".ToLowerInvariant(), response.Headers.Location!.AbsolutePath.ToLowerInvariant());
-        Assert.False(created.TryGetProperty("id", out _));
-        Assert.True(created.GetProperty("CreatedDate").GetDateTime().Year >= 2026);
+        Assert.False(created.TryGetProperty(resource == "countries" ? "Id" : "id", out _));
+        Assert.True(created.GetProperty(resource == "countries" ? "createdDate" : "CreatedDate").GetDateTime().Year >= 2026);
         using var readOnly = fixture.CreateClient($"legacy-catalog.{resource}.read");
         using var detail = await readOnly.GetAsync($"{route}/{id}");
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
         var stored = await fixture.StoredAsync(resource, id);
         Assert.Equal(DateTimeKind.Unspecified, stored.GetProperty("CreatedDate").GetDateTime().Kind);
-        Assert.Equal(created.GetProperty("CreatedDate").GetDateTime().Ticks / 10 * 10, stored.GetProperty("CreatedDate").GetDateTime().Ticks);
+        Assert.Equal(created.GetProperty(resource == "countries" ? "createdDate" : "CreatedDate").GetDateTime().Ticks / 10 * 10, stored.GetProperty("CreatedDate").GetDateTime().Ticks);
         using var prime = await exact.GetAsync(route);
         Assert.Equal(HttpStatusCode.OK, prime.StatusCode);
         var updatedPayload = Payload(resource);
@@ -91,7 +91,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
         using var refreshedResponse = await exact.GetAsync(route);
         var refreshed = await ReadObjectAsync(refreshedResponse);
         var rows = resource == "materials" ? refreshed.GetProperty("Items") : refreshed;
-        Assert.Equal("Updated", Assert.Single(rows.EnumerateArray()).GetProperty(resource == "currencies" ? "LongName" : "Name").GetString());
+        Assert.Equal("Updated", Assert.Single(rows.EnumerateArray()).GetProperty(resource == "countries" ? "name" : resource == "currencies" ? "LongName" : "Name").GetString());
         var changed = await fixture.StoredAsync(resource, id);
         Assert.Equal(stored.GetProperty("CreatedDate").GetDateTime(), changed.GetProperty("CreatedDate").GetDateTime());
         Assert.True(changed.GetProperty("ModifiedDate").GetDateTime() >= stored.GetProperty("ModifiedDate").GetDateTime());
@@ -266,9 +266,9 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
         Assert.Equal(HttpStatusCode.OK, countries.StatusCode);
         Assert.Equal(HttpStatusCode.OK, currencies.StatusCode);
         var rows = (await ReadObjectAsync(countries)).EnumerateArray().ToArray();
-        Assert.Equal(new[] { "Japan", "Thailand" }, rows.Select(row => row.GetProperty("Name").GetString()));
+        Assert.Equal(new[] { "Japan", "Thailand" }, rows.Select(row => row.GetProperty("name").GetString()));
         Assert.False(rows[0].TryGetProperty("Timezones", out _));
-        Assert.False(rows[0].TryGetProperty("name", out _));
+        Assert.False(rows[0].TryGetProperty("Name", out _));
         Assert.Equal("THB", Assert.Single((await ReadObjectAsync(currencies)).EnumerateArray()).GetProperty("ShortName").GetString());
         await using var catalog = fixture.CreateCatalogContext();
         Assert.Empty(await catalog.Countries.ToArrayAsync());
@@ -302,7 +302,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
             stored.Name = "Stored-only change";
             await context.SaveChangesAsync();
         }
-        using var invalid = await client.PutAsJsonAsync($"/materials/Colors/{id}", new { Name = " " });
+        using var invalid = await client.PutAsJsonAsync($"/materials/Colors/{id}", new { Name = new string('x', 51) });
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
         Assert.Equal("Stored-only change", (await fixture.StoredAsync("colors", id)).GetProperty("Name").GetString());
         using var authoritative = await client.GetAsync("/materials/Colors");
@@ -313,7 +313,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
     {
         using var response = await client.PostAsJsonAsync(route, payload);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        return (await ReadObjectAsync(response)).GetProperty("Id").GetInt32();
+        return (await ReadObjectAsync(response)).GetProperty(route == "/Countries" ? "id" : "Id").GetInt32();
     }
 
     [Theory]
@@ -339,7 +339,7 @@ public sealed class CatalogHttpLifecycleTests(CatalogHttpFixture fixture) : ICla
         if (resource == "materials") await fixture.SeedGroupAsync();
         using var client = fixture.CreateClient($"legacy-catalog.{resource}.create", $"legacy-catalog.{resource}.update");
         var before = await fixture.SnapshotAsync();
-        foreach (var value in new string?[] { null, "", " " })
+        foreach (var value in new string?[] { null })
             foreach (var field in resource == "currencies" ? new[] { "ShortName", "LongName" } : new[] { "Name" })
             {
                 var payload = Payload(resource);

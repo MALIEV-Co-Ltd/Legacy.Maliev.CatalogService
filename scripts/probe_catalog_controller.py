@@ -27,11 +27,28 @@ def registration_window():
     finally:
         signal.pthread_sigmask(signal.SIG_SETMASK, previous)
 
-def supervisor(transport):
-    policy = json.loads((transport / 'scripts/catalog-candidate-policy.json').read_bytes())
+def supervisor(transport, ordinary=False):
     name = 'scripts/run-catalog-owned-qualification.py'
-    row = next(row for row in policy['sourceFiles'] if row['path'] == name)
-    path = transport / 'candidate' / name
+    if ordinary:
+        seal = transport / 'scripts/catalog-ordinary-controller-seal.json'
+        if seal.is_symlink():
+            raise RuntimeError('Foreign ordinary supervisor seal')
+        policy = json.loads(seal.read_bytes())
+        if (set(policy) != {'schemaVersion', 'path', 'bytes', 'sha256'} or
+                type(policy['schemaVersion']) is not int or policy['schemaVersion'] != 1 or
+                policy['path'] != name or type(policy['bytes']) is not int or
+                not 0 < policy['bytes'] <= 256 * 1024 or
+                not isinstance(policy['sha256'], str) or len(policy['sha256']) != 64 or
+                any(c not in '0123456789abcdef' for c in policy['sha256'])):
+            raise RuntimeError('Foreign ordinary supervisor seal schema')
+        row = policy
+        path = transport / name
+    else:
+        policy = json.loads((transport / 'scripts/catalog-candidate-policy.json').read_bytes())
+        row = next(row for row in policy['sourceFiles'] if row['path'] == name)
+        path = transport / 'candidate' / name
+    if path.is_symlink() or path.resolve().parent != path.parent.resolve():
+        raise RuntimeError('Foreign supervisor source path')
     with path.open('rb') as stream:
         raw = stream.read(256 * 1024 + 1)
     if len(raw) != row['bytes'] or hashlib.sha256(raw).hexdigest() != row['sha256']:
@@ -293,10 +310,11 @@ def probe(module, root, fault, uid, gid, groups):
     return result
 
 def main():
-    if sys.platform != 'linux' or os.geteuid() != 0 or len(sys.argv) != 1:
+    if (sys.platform != 'linux' or os.geteuid() != 0 or
+            sys.argv[1:] not in ([], ['--ordinary-checkout'])):
         raise RuntimeError('Only explicit root-owned Linux controller proof supported')
     transport = Path(__file__).resolve().parents[1]
-    module = supervisor(transport)
+    module = supervisor(transport, ordinary=sys.argv[1:] == ['--ordinary-checkout'])
     memory = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
     if int(memory['MemAvailable'].split()[0]) < 4096 * 1024:
         raise RuntimeError('Memory below4096MiB before controller acquisition')

@@ -1,6 +1,7 @@
 {
   "forecast": 20,
-  "fullForecast": 355,
+  "fullForecast": 4593,
+  "countryResponseCase": "camelCase",
   "acceptedBaseFullPassed": 335,
   "methods": {
     "Legacy.Maliev.CatalogService.Tests.Integration.CountryIsoAndHealthSourceDiagnosticsTests.NormalCountryHttpAndOwnDatabaseCaptureAndAssertExactSourceLiteralParity": 7,
