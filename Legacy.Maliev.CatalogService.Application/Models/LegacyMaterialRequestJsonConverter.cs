@@ -1,9 +1,10 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Legacy.Maliev.CatalogService.Application.Models;
 
-/// <summary>Preserves typed ignored identifiers within a single Material request body.</summary>
+/// <summary>Preserves typed ignored identifiers and audit dates within a single Material request body.</summary>
 public sealed class LegacyMaterialRequestJsonConverter : JsonConverter<UpsertMaterialRequest>
 {
     /// <inheritdoc />
@@ -32,6 +33,12 @@ public sealed class LegacyMaterialRequestJsonConverter : JsonConverter<UpsertMat
                     _ = property.Value.Deserialize<int>(ignoredIdOptions);
                     continue;
                 }
+                if (string.Equals(property.Name, nameof(MaterialResponse.CreatedDate), comparison) ||
+                    string.Equals(property.Name, nameof(MaterialResponse.ModifiedDate), comparison))
+                {
+                    ValidateIgnoredDate(property.Value);
+                    continue;
+                }
                 if (string.Equals(property.Name, nameof(UpsertMaterialRequest.MaterialGroupId), comparison) &&
                     (property.Value.ValueKind == JsonValueKind.Null ||
                     (property.Value.ValueKind == JsonValueKind.String && property.Value.GetString() == string.Empty)))
@@ -48,6 +55,20 @@ public sealed class LegacyMaterialRequestJsonConverter : JsonConverter<UpsertMat
     /// <inheritdoc />
     public override void Write(Utf8JsonWriter writer, UpsertMaterialRequest value, JsonSerializerOptions options) =>
         JsonSerializer.Serialize(writer, value, InnerOptions(options));
+
+    private static void ValidateIgnoredDate(JsonElement value)
+    {
+        using var text = new StringReader(value.GetRawText());
+        using var legacy = new Newtonsoft.Json.JsonTextReader(text) { Culture = CultureInfo.InvariantCulture };
+        try
+        {
+            _ = legacy.ReadAsDateTime();
+        }
+        catch (Newtonsoft.Json.JsonException exception)
+        {
+            throw new JsonException("The ignored audit date has an invalid legacy type.", exception);
+        }
+    }
 
     private JsonSerializerOptions InnerOptions(JsonSerializerOptions options)
     {
