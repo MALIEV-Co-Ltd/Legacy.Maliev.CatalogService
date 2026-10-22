@@ -40,9 +40,9 @@ public sealed class MaterialIgnoredAuditDateSourceHttpTests(CatalogHttpFixture f
         {
             var data = new TheoryData<bool, string, string>();
             foreach (var update in new[] { false, true })
-                foreach (var field in Fields)
+                foreach (var fieldName in Fields)
                     foreach (var token in new[] { "{}", "[]", "true", "false", "123", "1.5", "\"invalid-date\"", "\"2026-02-30T00:00:00Z\"" })
-                        data.Add(update, field, token);
+                        data.Add(update, fieldName, token);
             return data;
         }
     }
@@ -53,8 +53,8 @@ public sealed class MaterialIgnoredAuditDateSourceHttpTests(CatalogHttpFixture f
         {
             var data = new TheoryData<bool, string, int>();
             foreach (var update in new[] { false, true })
-                foreach (var field in Fields)
-                    for (var order = 0; order < 3; order++) data.Add(update, field, order);
+                foreach (var fieldName in Fields)
+                    for (var order = 0; order < 3; order++) data.Add(update, fieldName, order);
             return data;
         }
     }
