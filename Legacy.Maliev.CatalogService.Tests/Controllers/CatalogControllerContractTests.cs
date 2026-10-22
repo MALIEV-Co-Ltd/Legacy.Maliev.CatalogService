@@ -128,6 +128,27 @@ public sealed class CatalogControllerContractTests
         service.VerifyNoOtherCalls();
     }
 
+    /// <summary>Rejects null Currency requests before invoking any catalog service operation.</summary>
+    /// <param name="update">Whether to invoke the update action instead of the create action.</param>
+    /// <param name="id">The update identifier, including zero and a negative value.</param>
+    /// <returns>A task that completes after verifying the original empty bad-request result and absent service calls.</returns>
+    [Theory]
+    [InlineData(false, 7)]
+    [InlineData(true, 0)]
+    [InlineData(true, 7)]
+    [InlineData(true, -1)]
+    public async Task Currency_NullDirectRequestsReturnBadRequestWithoutServiceCalls(bool update, int id)
+    {
+        var service = new Moq.Mock<ICatalogService>(Moq.MockBehavior.Strict);
+        var controller = new CurrenciesController(service.Object);
+        var result = update
+            ? await controller.UpdateCurrencyAsync(id, null!, CancellationToken.None)
+            : await controller.CreateCurrencyAsync(null!, CancellationToken.None);
+
+        Assert.IsType<BadRequestResult>(result);
+        service.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public void Responses_UseLegacyPascalCaseAndOmitNulls()
     {

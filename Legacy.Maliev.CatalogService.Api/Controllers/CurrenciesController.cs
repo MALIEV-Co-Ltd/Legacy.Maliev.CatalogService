@@ -18,6 +18,11 @@ public sealed class CurrenciesController(ICatalogService service) : ControllerBa
     [RequirePermission(CatalogPermissions.CurrenciesCreate)]
     public async Task<ActionResult> CreateCurrencyAsync(UpsertCurrencyRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
         var created = await service.CreateCurrencyAsync(request, cancellationToken);
         return CreatedAtRoute("GetCurrency", new { id = created.Id }, created);
     }
@@ -50,5 +55,5 @@ public sealed class CurrenciesController(ICatalogService service) : ControllerBa
     [HttpPut("{id:int}")]
     [RequirePermission(CatalogPermissions.CurrenciesUpdate)]
     public async Task<ActionResult> UpdateCurrencyAsync(int id, UpsertCurrencyRequest request, CancellationToken cancellationToken) =>
-        id == 0 ? BadRequest() : await service.UpdateCurrencyAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+        request is null || id == 0 ? BadRequest() : await service.UpdateCurrencyAsync(id, request, cancellationToken) ? NoContent() : NotFound();
 }
