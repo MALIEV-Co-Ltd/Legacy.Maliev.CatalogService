@@ -11,11 +11,34 @@ import xml.etree.ElementTree as ET
 import subprocess
 
 
-def verify_native(root, full=False, manifest_override=None):
+HEALTH_ALIAS_METHODS = (
+    "LegacyLiveness_PreservesAnonymousVerbsAndCaseWithoutDependencyCalls",
+    "Readiness_PreservesPrivateFailureDeduplicationAndSuccessReset",
+    "LegacyReadiness_IncludesUntaggedChecksUnderCurrentStrongerPolicy",
+    "LegacyAliases_DoNotAcquireCurrentHealthInstanceHeaders",
+    "HealthAliases_PreserveBusinessAuthenticationAndNearRouteMisses",
+)
+HEALTH_ALIAS_CLASS = "Legacy.Maliev.CatalogService.Tests.Controllers.LegacyCatalogHealthHttpTests"
+
+
+def verify_native(root, full=False, manifest_override=None, aliases=False):
     manifest = manifest_override if manifest_override is not None else json.loads((Path(__file__).parent / 'country-health-diagnostic-expected.json').read_text())
-    expected = manifest['methods']
-    total = manifest['fullForecast'] if full else manifest['forecast']
-    assert sum(expected.values()) == manifest['forecast'] == 20
+    assert sum(manifest['methods'].values()) == manifest['forecast'] == 20
+    expected = dict(manifest['methods'])
+    if full and aliases:
+        raise SystemExit('Choose full or alias-only evidence, not both')
+    additions = manifest.get('healthAliasMethods', {})
+    if additions or aliases or full:
+        required_aliases = {HEALTH_ALIAS_CLASS + '.' + name: 1 for name in HEALTH_ALIAS_METHODS}
+        if additions != required_aliases or manifest.get('healthAliasForecast') != 5:
+            raise SystemExit('Require the exact five reviewed health alias methods')
+    if full:
+        if manifest['fullForecast'] != 4756:
+            raise SystemExit('Require the reviewed full 4756 execution forecast')
+        expected.update(additions)
+    elif aliases:
+        expected = dict(additions)
+    total = manifest['fullForecast'] if full else manifest['healthAliasForecast'] if aliases else manifest['forecast']
     reports = list(root.rglob('*.trx'))
     if len(reports) != 1:
         raise SystemExit('Require one actual TRX')
@@ -85,7 +108,8 @@ def verify_native(root, full=False, manifest_override=None):
         identity = definition[0] if definition else None
         name = result.get('testName', '')
         execution = guid(result.get('executionId'))
-        if not identity or not execution or execution in executions or name in names or result.get('outcome') != 'Passed':
+        if (not identity or not execution or execution in executions or name in names or result.get('outcome') != 'Passed'
+                or result.find('t:Output/t:ErrorInfo', ns) is not None):
             raise SystemExit('Missing, duplicate or nonpassing native execution')
         if not (name == identity or name.startswith(identity + '(')):
             raise SystemExit('Result contradicts native test method')
@@ -117,7 +141,7 @@ def verify_native(root, full=False, manifest_override=None):
     for assembly in ['Api', 'Application', 'Data', 'Domain']:
         if not any(p.get('name') == 'Legacy.Maliev.CatalogService.' + assembly and p.findall('.//line') for p in packages):
             raise SystemExit('Missing owned executable coverage inventory: ' + assembly)
-    proof = {'actualPassed': total, 'countryHealthDiagnosticActualPassed': 10, 'failed': 0, 'skipped': 0,
+    proof = {'actualPassed': total, 'countryHealthDiagnosticActualPassed': 0 if aliases else 10, 'failed': 0, 'skipped': 0,
      'methods': dict(actual), 'trxSha256': hashlib.sha256(bounded_bytes(reports[0], 32 * 1024 * 1024)).hexdigest(),
      'rawSha256': next(iter(digests)), 'rawCopies': len(raw), 'exclusions': [],
      'actualProducerJoinProven': False, 'fullSuiteCoverageFloor': 'separate existing coverage gate' if full else False}
@@ -127,8 +151,12 @@ def verify_native(root, full=False, manifest_override=None):
 def main():
     root = Path(sys.argv[1])
     full = '--full' in sys.argv[2:]
-    proof = verify_native(root, full)
-    (root / 'country-health-diagnostic-proof.json').write_text(json.dumps(proof, indent=2) + '\n')
+    aliases = '--aliases' in sys.argv[2:]
+    if aliases and '--exports' in sys.argv[2:]:
+        raise SystemExit('Alias-only evidence cannot impersonate original diagnostic exports')
+    proof = verify_native(root, full, aliases=aliases)
+    proof_name = 'catalog-health-alias-proof.json' if aliases else 'country-health-diagnostic-proof.json'
+    (root / proof_name).write_text(json.dumps(proof, indent=2) + '\n')
     if '--exports' in sys.argv[2:]:
         subprocess.run([sys.executable, '-B', str(Path(__file__).parent / 'retain-country-health-diagnostics.py'), str(root), '--seal'], check=True, timeout=60)
     print(json.dumps(proof, indent=2))

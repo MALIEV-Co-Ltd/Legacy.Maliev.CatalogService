@@ -29,6 +29,10 @@ SOURCES = [
     'scripts/verify-country-health-diagnostics.py',
     'scripts/retain-country-health-diagnostics.py',
     'scripts/test-country-health-diagnostic-reader.py',
+    'Legacy.Maliev.CatalogService.Api/Controllers/LegacyCatalogHealthController.cs',
+    'Legacy.Maliev.CatalogService.Tests/Controllers/LegacyCatalogHealthHttpTests.cs',
+    'scripts/test-catalog-health-alias-enrollment.py',
+    '.github/workflows/catalog-health-aliases.yml',
     '.github/workflows/country-health-diagnostics.yml',
     '.github/workflows/_build-and-test.yml',
     'Legacy.Maliev.CatalogService.Tests/Workflows/WorkflowContractTests.cs',
@@ -175,8 +179,8 @@ def evidence(root, head):
             and type(observation['Status']) is int and 100 <= observation['Status'] <= 599
             and (observation['Status'] == 200) is expected[1])
         body = bounded(folder / ('health-' + case + '-body.bin'), 16 * 1024)
-        if case == 'liveness':
-            require('Original liveness body required', body == b'Healthy')
+        if case == 'liveness' or case == 'old-material-prefix' and expected[1]:
+            require('Original or restored legacy liveness body required', body == b'Healthy')
         elif case == 'readiness':
             status = load(body)
             require('Sanitized original healthy readiness required', isinstance(status, dict)

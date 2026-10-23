@@ -113,7 +113,7 @@ def main():
                 'CatalogCountryRows': 0, 'CurrencyRows': 0, 'ActualAuthProducerJoinProven': False}
             (exports / (case + '-observation.json')).write_bytes(encode(observation))
         for case, (path, healthy) in manifest['health'].items():
-            body = b'Healthy' if case == 'liveness' else encode({'status': 'Healthy',
+            body = b'Healthy' if case == 'liveness' or case == 'old-material-prefix' and healthy else encode({'status': 'Healthy',
                 'checks': {'self': {'status': 'Healthy', 'duration': 0}}, 'totalDuration': 0}) if case == 'readiness' else b''
             (exports / ('health-' + case + '-body.bin')).write_bytes(body)
             (exports / ('health-' + case + '-observation.json')).write_bytes(encode({'SyntheticOnly': True,
@@ -265,7 +265,8 @@ def main():
         reject('boolean-role-count', exports / 'short-observation.json', mutate_json('CurrencyRows', False))
         reject('wrong-model-type', exports / 'short-observation.json', mutate_json('Iso2ColumnType', 'text'))
         reject('fake-auth-join', exports / 'short-observation.json', mutate_json('ActualAuthProducerJoinProven', True))
-        reject('old-prefix-healthy', exports / 'health-old-material-prefix-observation.json', mutate_json('Status', 200))
+        reject('old-prefix-unhealthy', exports / 'health-old-material-prefix-observation.json', mutate_json('Status', 401))
+        reject('old-prefix-private-body', exports / 'health-old-material-prefix-body.bin', lambda data: b'Unexpected')
         reject('deployment-claim', exports / 'health-readiness-observation.json', mutate_json('SlowStartupBudgetOrDeployedRolloutProven', True))
         reject('liveness-body', exports / 'health-liveness-body.bin', lambda data: b'Unexpected')
         reject('readiness-private-data', exports / 'health-readiness-body.bin', mutate_json('exception', 'synthetic'))

@@ -104,7 +104,8 @@ public sealed class CountryIsoAndHealthSourceDiagnosticsTests(CatalogHttpFixture
     [Theory]
     [InlineData("liveness", "/catalog/liveness", true)]
     [InlineData("readiness", "/catalog/readiness", true)]
-    [InlineData("old-material-prefix", "/materials/liveness", false)]
+    [InlineData("old-material-prefix", "/materials/liveness", true)]
+    // Preserve this historical test identity while the material alias becomes an accepted source obligation.
     public async Task NormalAnonymousHealthUsesCatalogPrefixWithoutAddingLegacyAliases(
         string caseName, string path, bool healthy)
     {
