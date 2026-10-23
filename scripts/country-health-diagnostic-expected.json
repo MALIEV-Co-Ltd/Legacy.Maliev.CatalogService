@@ -1,6 +1,6 @@
 {
   "forecast": 20,
-  "fullForecast": 4751,
+  "fullForecast": 4756,
   "countryResponseCase": "camelCase",
   "acceptedBaseFullPassed": 335,
   "methods": {
@@ -51,7 +51,7 @@
     ],
     "old-material-prefix": [
       "/materials/liveness",
-      false
+      true
     ]
   },
   "sourceCountryModel": {
@@ -63,6 +63,14 @@
   "materialStartupSourceSha": "eb11c81a6c759e1d4bcd1a1b3b28dc5f30cc02cb",
   "diagnosticAcceptanceIsNotSourceParityAcceptance": true,
   "actualAuthOrDeploymentProven": false,
+  "healthAliasForecast": 5,
+  "healthAliasMethods": {
+    "Legacy.Maliev.CatalogService.Tests.Controllers.LegacyCatalogHealthHttpTests.LegacyLiveness_PreservesAnonymousVerbsAndCaseWithoutDependencyCalls": 1,
+    "Legacy.Maliev.CatalogService.Tests.Controllers.LegacyCatalogHealthHttpTests.Readiness_PreservesPrivateFailureDeduplicationAndSuccessReset": 1,
+    "Legacy.Maliev.CatalogService.Tests.Controllers.LegacyCatalogHealthHttpTests.LegacyReadiness_IncludesUntaggedChecksUnderCurrentStrongerPolicy": 1,
+    "Legacy.Maliev.CatalogService.Tests.Controllers.LegacyCatalogHealthHttpTests.LegacyAliases_DoNotAcquireCurrentHealthInstanceHeaders": 1,
+    "Legacy.Maliev.CatalogService.Tests.Controllers.LegacyCatalogHealthHttpTests.HealthAliases_PreserveBusinessAuthenticationAndNearRouteMisses": 1
+  },
   "observedTargetColumnTypes": {
     "Iso2": "character varying(2)",
     "Iso3": "character varying(3)"
