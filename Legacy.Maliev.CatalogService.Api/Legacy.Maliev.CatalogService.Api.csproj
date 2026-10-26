@@ -21,6 +21,8 @@
     <Content Update="Data\ThaiAddresses\geography.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Update="Data\ThaiAddresses\provenance.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="Data\ThaiAddresses\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Match the Data assembly EF patch when ServiceDefaults still supplies an older transitive reference. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <ProjectReference Include="..\Legacy.Maliev.CatalogService.Application\Legacy.Maliev.CatalogService.Application.csproj" />
     <ProjectReference Include="..\Legacy.Maliev.CatalogService.Data\Legacy.Maliev.CatalogService.Data.csproj" />
