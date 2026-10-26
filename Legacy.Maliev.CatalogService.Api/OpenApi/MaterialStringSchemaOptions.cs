@@ -22,6 +22,14 @@ public sealed class MaterialStringSchemaOptions : IConfigureNamedOptions<OpenApi
             if (context.JsonTypeInfo.Type == typeof(UpsertMaterialRequest) || context.JsonTypeInfo.Type == typeof(MaterialResponse))
                 foreach (var propertyName in OptionalStrings)
                     schema.Required?.Remove(propertyName);
+            if (context.JsonTypeInfo.Type == typeof(ExchangeRateResponse))
+            {
+                schema.Required?.Remove(nameof(ExchangeRateResponse.Base));
+                schema.Required?.Remove(nameof(ExchangeRateResponse.Rates));
+            }
+            if (context.JsonTypeInfo.Type == typeof(CountryResponse))
+                foreach (var propertyName in new[] { "continent", "countryCode", "iso2", "iso3", "createdDate", "modifiedDate" })
+                    schema.Required?.Remove(propertyName);
             return Task.CompletedTask;
         });
     }

@@ -1,0 +1,60 @@
+name: Catalog legacy health aliases
+
+on:
+  pull_request:
+    branches: [main, develop, staging]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MalievWorkspaceRoot: ${{ github.workspace }}/.dependencies
+      VSTestCollect: XPlat Code Coverage
+      VSTestLogger: trx
+      VSTestResultsDirectory: ${{ github.workspace }}/catalog-health-alias-results
+      VSTestTestCaseFilter: FullyQualifiedName~LegacyCatalogHealthHttpTests
+    steps:
+      - name: Check out CatalogService
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out Legacy.Maliev.ServiceDefaults
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults
+          ref: 7edcd961024868513fd5f373cab3dcb261197f77
+          path: .dependencies/Legacy.Maliev.ServiceDefaults
+          persist-credentials: false
+      - name: Check out Legacy.Maliev.CompatibilityContracts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts
+          ref: 78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7
+          path: .dependencies/Legacy.Maliev.CompatibilityContracts
+          persist-credentials: false
+      - name: Validate .NET solution
+        uses: MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@e3a6093324a24968876782153286f52db8b29fd8
+        with:
+          solution: Legacy.Maliev.CatalogService.Tests/Legacy.Maliev.CatalogService.Tests.csproj
+          use-local-maliev-dependencies: 'true'
+      - name: Verify exactly five actual health alias executions
+        run: python3 -B scripts/verify-country-health-diagnostics.py catalog-health-alias-results --aliases
+      - name: Verify synthetic alias enrollment rejection controls
+        run: python3 -B scripts/test-catalog-health-alias-enrollment.py
+      - name: Preserve original diagnostic reader controls
+        run: python3 -B scripts/test-country-health-diagnostic-reader.py
+      - name: Preserve health alias evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: catalog-health-aliases-${{ github.sha }}
+          path: catalog-health-alias-results
+          if-no-files-found: warn
+          retention-days: 7

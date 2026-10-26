@@ -63,54 +63,101 @@ public sealed class CatalogBuildContextParityTests
         var owned = Path.Combine(root, "TestResults", "catalog-context", Guid.NewGuid().ToString("N"));
         var input = Path.Combine(owned, "input");
         var output = Path.Combine(owned, "output");
-        Directory.CreateDirectory(input);
-        File.Copy(Path.Combine(root, ".dockerignore"), Path.Combine(input, ".dockerignore"));
-        await File.WriteAllTextAsync(Path.Combine(input, "Dockerfile"), "FROM scratch\nCOPY . /context/\n");
-
-        string[] included =
-        [
-            "Legacy.Maliev.CatalogService.Api/Legacy.Maliev.CatalogService.Api.csproj",
-            "Legacy.Maliev.CatalogService.Api/Program.cs",
-            ".dependencies/Legacy.Maliev.ServiceDefaults/src/Legacy.Maliev.ServiceDefaults/Legacy.Maliev.ServiceDefaults.csproj",
-            ".dependencies/Legacy.Maliev.ServiceDefaults/src/Legacy.Maliev.ServiceDefaults/Extensions.cs",
-            ".dependencies/Legacy.Maliev.CompatibilityContracts/src/Legacy.Maliev.CompatibilityContracts/Legacy.Maliev.CompatibilityContracts.csproj",
-            ".dependencies/Legacy.Maliev.CompatibilityContracts/src/Legacy.Maliev.CompatibilityContracts/Shared/MessageEnvelope.cs",
-        ];
-        foreach (var path in included)
+        try
         {
-            var destination = Path.Combine(input, path);
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.Copy(Path.Combine(root, path), destination);
-        }
+            Directory.CreateDirectory(input);
+            File.Copy(Path.Combine(root, ".dockerignore"), Path.Combine(input, ".dockerignore"));
+            await File.WriteAllTextAsync(Path.Combine(input, "Dockerfile"), "FROM scratch\nCOPY . /context/\n");
 
-        string[] excluded =
-        [
-            ".git/config", ".env", ".env.synthetic",
-            ".dependencies/Legacy.Maliev.ServiceDefaults/.git/config",
-            ".dependencies/Legacy.Maliev.ServiceDefaults/.env",
-            ".dependencies/Legacy.Maliev.ServiceDefaults/.env.synthetic",
-            ".dependencies/Legacy.Maliev.ServiceDefaults/runtime.env",
-            ".dependencies/Legacy.Maliev.CompatibilityContracts/.git/config",
-            "Legacy.Maliev.CatalogService.Api/bin/synthetic.txt",
-            "Legacy.Maliev.CatalogService.Api/obj/synthetic.txt",
-        ];
-        foreach (var path in excluded)
-        {
-            var destination = Path.Combine(input, path);
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            await File.WriteAllTextAsync(destination, "SYNTHETIC_CONTEXT_EXCLUSION_SENTINEL");
-        }
+            string[] included =
+            [
+                "nuget.config",
+                "Directory.Build.props",
+                "Legacy.Maliev.CatalogService.Api/Data/ThaiAddresses/geography.json",
+                "Legacy.Maliev.CatalogService.Api/Data/ThaiAddresses/provenance.json",
+                "Legacy.Maliev.CatalogService.Api/Data/ThaiAddresses/LICENSE",
+                ".dependencies/Legacy.Maliev.ServiceDefaults/Directory.Build.props",
+                ".dependencies/Legacy.Maliev.ServiceDefaults/global.json",
+                ".dependencies/Legacy.Maliev.ServiceDefaults/nuget.config",
+                ".dependencies/Legacy.Maliev.ServiceDefaults/README.md",
+                ".dependencies/Legacy.Maliev.CompatibilityContracts/Directory.Build.props",
+                ".dependencies/Legacy.Maliev.CompatibilityContracts/global.json",
+                ".dependencies/Legacy.Maliev.CompatibilityContracts/nuget.config",
+                ".dependencies/Legacy.Maliev.CompatibilityContracts/README.md",
+            ];
+            string[] sourceDirectories =
+            [
+                "Legacy.Maliev.CatalogService.Api",
+                "Legacy.Maliev.CatalogService.Application",
+                "Legacy.Maliev.CatalogService.Domain",
+                "Legacy.Maliev.CatalogService.Data",
+                ".dependencies/Legacy.Maliev.ServiceDefaults/src",
+                ".dependencies/Legacy.Maliev.CompatibilityContracts/src",
+            ];
+            included = included.Concat(sourceDirectories.SelectMany(directory =>
+                    Directory.EnumerateFiles(Path.Combine(root, directory), "*", SearchOption.AllDirectories))
+                .Select(path => Path.GetRelativePath(root, path).Replace(Path.DirectorySeparatorChar, '/'))
+                .Where(path => !path.Split('/').Any(segment => segment is "bin" or "obj"))
+                .Where(path => Path.GetExtension(path) is ".cs" or ".csproj" or ".resx"))
+                .Distinct(StringComparer.Ordinal).ToArray();
+            foreach (var path in included)
+            {
+                var destination = Path.Combine(input, path);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                File.Copy(Path.Combine(root, path), destination);
+            }
 
-        // Real Docker/BuildKit evaluates the repository's ignore file. No custom pattern matcher.
-        await DockerAsync("build", "--network=none", "--no-cache", "--progress=quiet",
-            "--output", $"type=local,dest={output}", "--file", Path.Combine(input, "Dockerfile"), input);
-        foreach (var path in included)
-        {
-            Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(input, path)),
-                await File.ReadAllBytesAsync(Path.Combine(output, "context", path)));
+            // One root and nested fixture for each retained 03eaff ignore category.
+            // A root Dockerfile.dockerignore would override the policy under test,
+            // so its fixture is nested beneath the dependency checkout instead.
+            string[] sourceExcluded =
+            [
+                ".git/config", ".gitignore", ".github/workflow.yml", ".vscode/settings.json",
+                ".vs/state", ".idea/workspace.xml", "bin/output.dll", "obj/generated.cs",
+                "out/output.txt", "node_modules/package/index.js", "dist/bundle.js",
+                "coverage/data.xml", "TestResults/result.trx", "private.suo", "private.user",
+                "private.csproj.user", "private.cache", "private.log", "private.tmp",
+                "private.nupkg", "private.swp", "private.swo", "private.env", ".env",
+                ".env.synthetic", "private.ps1", "private.cmd", "private.sh",
+                "private.yml", "private.yaml",
+            ];
+            string[] excluded =
+            [
+                .. sourceExcluded,
+                .. sourceExcluded.Select(path => ".dependencies/Legacy.Maliev.ServiceDefaults/" + path),
+                ".dependencies/Legacy.Maliev.ServiceDefaults/nested/Dockerfile.dockerignore",
+                ".dependencies/Legacy.Maliev.CompatibilityContracts/nested/Dockerfile.dockerignore",
+                ".dependencies/Legacy.Maliev.ServiceDefaults/runtime.env",
+                ".dependencies/Legacy.Maliev.CompatibilityContracts/.git/config",
+                "Legacy.Maliev.CatalogService.Api/bin/synthetic.txt",
+                "Legacy.Maliev.CatalogService.Api/obj/synthetic.txt",
+                "private.pfx", "private.key", "private.pem",
+            ];
+            foreach (var path in excluded)
+            {
+                var destination = Path.Combine(input, path);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                await File.WriteAllTextAsync(destination, "SYNTHETIC_CONTEXT_EXCLUSION_SENTINEL");
+            }
+
+            // Real Docker/BuildKit evaluates the repository's ignore file. No custom pattern matcher.
+            await DockerAsync("build", "--network=none", "--no-cache", "--progress=quiet",
+                "--output", $"type=local,dest={output}", "--file", Path.Combine(input, "Dockerfile"), input);
+            foreach (var path in included)
+            {
+                Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(input, path)),
+                    await File.ReadAllBytesAsync(Path.Combine(output, "context", path)));
+            }
+            var leaked = excluded.Where(path => File.Exists(Path.Combine(output, "context", path))).ToArray();
+            Assert.True(leaked.Length == 0, $"Excluded synthetic paths reached COPY: {string.Join(", ", leaked)}");
         }
-        var leaked = excluded.Where(path => File.Exists(Path.Combine(output, "context", path))).ToArray();
-        Assert.True(leaked.Length == 0, $"Excluded synthetic paths reached COPY: {string.Join(", ", leaked)}");
+        finally
+        {
+            if (Directory.Exists(owned))
+            {
+                Directory.Delete(owned, recursive: true);
+            }
+        }
     }
 
     private static void WithConnection(string? configured, Action action)

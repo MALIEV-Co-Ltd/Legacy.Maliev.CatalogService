@@ -18,6 +18,11 @@ public sealed class SurfaceFinishesController(ICatalogService service) : Control
     [RequirePermission(CatalogPermissions.SurfaceFinishesCreate)]
     public async Task<ActionResult> CreateSurfaceFinishAsync(UpsertSurfaceFinishRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
         var created = await service.CreateSurfaceFinishAsync(request, cancellationToken);
         return CreatedAtRoute("GetSurfaceFinish", new { id = created.Id }, created);
     }
@@ -89,6 +94,13 @@ public sealed class SurfaceFinishesController(ICatalogService service) : Control
     /// <summary>Updates a surface finish.</summary>
     [HttpPut("{id:int}")]
     [RequirePermission(CatalogPermissions.SurfaceFinishesUpdate)]
-    public async Task<ActionResult> UpdateSurfaceFinishAsync(int id, UpsertSurfaceFinishRequest request, CancellationToken cancellationToken) =>
-        await service.UpdateSurfaceFinishAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    public async Task<ActionResult> UpdateSurfaceFinishAsync(int id, UpsertSurfaceFinishRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            return BadRequest();
+        }
+
+        return await service.UpdateSurfaceFinishAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+    }
 }

@@ -31,6 +31,7 @@ static async Task RunHostAsync(string[] startupArgs)
     var builder = WebApplication.CreateBuilder(startupArgs);
 
     builder.AddServiceDefaults();
+    builder.AddPrivateRequestObservation("catalog");
     builder.Logging.AddCatalogPrivateDiagnostics();
     builder.AddDefaultApiVersioning();
     builder.AddPostgresDbContext<CatalogDbContext>(connectionName: "CatalogDbContext");
@@ -66,9 +67,14 @@ static async Task RunHostAsync(string[] startupArgs)
         options.SerializerOptions.DictionaryKeyPolicy = null;
     });
 
-    builder.Services.AddControllers().AddJsonOptions(options =>
+    builder.Services.AddControllers(options =>
     {
+        options.InputFormatters.Insert(0, new Legacy.Maliev.CatalogService.Api.Serialization.LegacyCurrencyRequestInputFormatter());
+    }).AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyCountryRequestJsonConverter());
         options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyMaterialRequestJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new Legacy.Maliev.CatalogService.Application.Models.LegacyLookupRequestJsonConverterFactory());
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.PropertyNamingPolicy = null;
         options.JsonSerializerOptions.DictionaryKeyPolicy = null;

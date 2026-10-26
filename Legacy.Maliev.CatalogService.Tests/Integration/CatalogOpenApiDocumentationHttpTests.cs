@@ -55,6 +55,69 @@ public sealed class CatalogOpenApiDocumentationHttpTests
     }
 
     [Fact]
+    public async Task Development_document_keeps_exchange_rate_base_nullable_and_optional()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var fixture = new CatalogDocumentationHost("Development");
+        using var client = fixture.Host.CreateClient();
+        using var response = await client.GetAsync("/catalog/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var schema = document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("ExchangeRateResponse");
+        var properties = schema.GetProperty("properties");
+        var types = properties.GetProperty("Base").GetProperty("type").EnumerateArray().Select(type => type.GetString()).ToArray();
+        Assert.Equal(2, types.Length);
+        Assert.Contains("string", types);
+        Assert.Contains("null", types);
+        Assert.False(properties.TryGetProperty("base", out _));
+        var required = schema.GetProperty("required").EnumerateArray().Select(item => item.GetString()).ToArray();
+        Assert.DoesNotContain("Base", required);
+        Assert.Contains("Date", required);
+        Assert.DoesNotContain("Rates", required);
+        Assert.True(properties.TryGetProperty("Date", out _));
+        Assert.True(properties.TryGetProperty("Rates", out _));
+        var rateTypes = properties.GetProperty("Rates").GetProperty("type").EnumerateArray().Select(type => type.GetString()).ToArray();
+        Assert.Equal(2, rateTypes.Length);
+        Assert.Contains("object", rateTypes);
+        Assert.Contains("null", rateTypes);
+        var responses = document.RootElement.GetProperty("paths").GetProperty("/currencies/exchangerates")
+            .GetProperty("get").GetProperty("responses");
+        Assert.True(responses.TryGetProperty("200", out _));
+        Assert.True(responses.TryGetProperty("204", out _));
+        fixture.AssertNoDatabaseWork();
+    }
+
+
+    [Fact]
+    public async Task Development_document_keeps_country_source_names_nullable_omission_and_other_response_names()
+    {
+        using var environment = new CatalogEnvironmentScope(null);
+        using var fixture = new CatalogDocumentationHost("Development");
+        using var client = fixture.Host.CreateClient();
+        using var response = await client.GetAsync("/catalog/openapi/v1.json");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var country = schemas.GetProperty("CountryResponse");
+        var properties = country.GetProperty("properties");
+        Assert.Equal(new[] { "id", "name", "continent", "countryCode", "iso2", "iso3", "createdDate", "modifiedDate" },
+            properties.EnumerateObject().Select(property => property.Name));
+        var required = country.GetProperty("required").EnumerateArray().Select(value => value.GetString()).ToArray();
+        Assert.Contains("id", required);
+        Assert.Contains("name", required);
+        foreach (var optional in new[] { "continent", "countryCode", "iso2", "iso3", "createdDate", "modifiedDate" })
+        {
+            Assert.DoesNotContain(optional, required);
+            Assert.Contains("null", properties.GetProperty(optional).GetProperty("type").EnumerateArray().Select(value => value.GetString()));
+        }
+        var colors = schemas.GetProperty("ColorResponse").GetProperty("properties");
+        Assert.True(colors.TryGetProperty("Id", out _));
+        Assert.True(colors.TryGetProperty("Name", out _));
+        Assert.False(colors.TryGetProperty("id", out _));
+        fixture.AssertNoDatabaseWork();
+    }
+
+    [Fact]
     public async Task Production_keeps_documentation_unmapped_instead_of_exposing_development_metadata()
     {
         // Catches a documentation repair accidentally mapping OpenAPI/Scalar in production.

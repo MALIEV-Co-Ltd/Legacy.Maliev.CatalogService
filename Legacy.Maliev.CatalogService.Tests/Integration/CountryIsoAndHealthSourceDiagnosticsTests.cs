@@ -35,22 +35,22 @@ public sealed class CountryIsoAndHealthSourceDiagnosticsTests(CatalogHttpFixture
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         byte[] createdBytes = await created.Content.ReadAsByteArrayAsync();
         using var createdJson = JsonDocument.Parse(createdBytes);
-        int id = createdJson.RootElement.GetProperty("Id").GetInt32();
+        int id = createdJson.RootElement.GetProperty("id").GetInt32();
 
         using var fresh = await client.GetAsync($"/Countries/{id}");
         Assert.Equal(HttpStatusCode.OK, fresh.StatusCode);
         byte[] freshBytes = await fresh.Content.ReadAsByteArrayAsync();
         using var freshJson = JsonDocument.Parse(freshBytes);
         var stored = await fixture.StoredAsync("countries", id);
-        Assert.Equal(Code(stored, "Iso2"), Code(freshJson.RootElement, "Iso2"));
-        Assert.Equal(Code(stored, "Iso3"), Code(freshJson.RootElement, "Iso3"));
+        Assert.Equal(Code(stored, "Iso2"), Code(freshJson.RootElement, "iso2"));
+        Assert.Equal(Code(stored, "Iso3"), Code(freshJson.RootElement, "iso3"));
 
         // Country creation currently appends a row; Accounting replay semantics do not apply here.
         using var repeated = await client.PostAsJsonAsync("/Countries", request);
         Assert.Equal(HttpStatusCode.Created, repeated.StatusCode);
         byte[] repeatedBytes = await repeated.Content.ReadAsByteArrayAsync();
         using var repeatedJson = JsonDocument.Parse(repeatedBytes);
-        Assert.NotEqual(id, repeatedJson.RootElement.GetProperty("Id").GetInt32());
+        Assert.NotEqual(id, repeatedJson.RootElement.GetProperty("id").GetInt32());
 
         using var updated = await client.PutAsJsonAsync($"/Countries/{id}", request);
         Assert.Equal(HttpStatusCode.NoContent, updated.StatusCode);
@@ -59,10 +59,10 @@ public sealed class CountryIsoAndHealthSourceDiagnosticsTests(CatalogHttpFixture
         byte[] afterBytes = await after.Content.ReadAsByteArrayAsync();
         using var afterJson = JsonDocument.Parse(afterBytes);
         var afterStored = await fixture.StoredAsync("countries", id);
-        Assert.Equal(Code(freshJson.RootElement, "Iso2"), Code(afterJson.RootElement, "Iso2"));
-        Assert.Equal(Code(freshJson.RootElement, "Iso3"), Code(afterJson.RootElement, "Iso3"));
-        Assert.Equal(Code(afterStored, "Iso2"), Code(afterJson.RootElement, "Iso2"));
-        Assert.Equal(Code(afterStored, "Iso3"), Code(afterJson.RootElement, "Iso3"));
+        Assert.Equal(Code(freshJson.RootElement, "iso2"), Code(afterJson.RootElement, "iso2"));
+        Assert.Equal(Code(freshJson.RootElement, "iso3"), Code(afterJson.RootElement, "iso3"));
+        Assert.Equal(Code(afterStored, "Iso2"), Code(afterJson.RootElement, "iso2"));
+        Assert.Equal(Code(afterStored, "Iso3"), Code(afterJson.RootElement, "iso3"));
 
         await using var country = fixture.CreateCountryContext();
         await using var catalog = fixture.CreateCatalogContext();
@@ -81,8 +81,8 @@ public sealed class CountryIsoAndHealthSourceDiagnosticsTests(CatalogHttpFixture
         {
             SyntheticOnly = true,
             DiagnosticOnly = true,
-            SourceLiteralParityObserved = iso2 == Code(freshJson.RootElement, "Iso2")
-                && iso3 == Code(freshJson.RootElement, "Iso3"),
+            SourceLiteralParityObserved = iso2 == Code(freshJson.RootElement, "iso2")
+                && iso3 == Code(freshJson.RootElement, "iso3"),
             RequestedIso2 = iso2,
             RequestedIso3 = iso3,
             StoredIso2 = Code(stored, "Iso2"),
@@ -95,8 +95,8 @@ public sealed class CountryIsoAndHealthSourceDiagnosticsTests(CatalogHttpFixture
             ActualAuthProducerJoinProven = false,
         }));
         // Keep the real source-parity RED after retaining all original diagnostic evidence.
-        Assert.Equal(iso2, Code(freshJson.RootElement, "Iso2"));
-        Assert.Equal(iso3, Code(freshJson.RootElement, "Iso3"));
+        Assert.Equal(iso2, Code(freshJson.RootElement, "iso2"));
+        Assert.Equal(iso3, Code(freshJson.RootElement, "iso3"));
         Assert.Equal(iso2, Code(afterStored, "Iso2"));
         Assert.Equal(iso3, Code(afterStored, "Iso3"));
     }
@@ -104,7 +104,8 @@ public sealed class CountryIsoAndHealthSourceDiagnosticsTests(CatalogHttpFixture
     [Theory]
     [InlineData("liveness", "/catalog/liveness", true)]
     [InlineData("readiness", "/catalog/readiness", true)]
-    [InlineData("old-material-prefix", "/materials/liveness", false)]
+    [InlineData("old-material-prefix", "/materials/liveness", true)]
+    // Preserve this historical test identity while the material alias becomes an accepted source obligation.
     public async Task NormalAnonymousHealthUsesCatalogPrefixWithoutAddingLegacyAliases(
         string caseName, string path, bool healthy)
     {

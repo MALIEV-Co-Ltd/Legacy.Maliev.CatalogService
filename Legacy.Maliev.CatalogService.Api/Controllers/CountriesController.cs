@@ -18,6 +18,7 @@ public sealed class CountriesController(ICatalogService service) : ControllerBas
     [RequirePermission(CatalogPermissions.CountriesCreate)]
     public async Task<ActionResult> CreateCountryAsync(UpsertCountryRequest request, CancellationToken cancellationToken)
     {
+        if (request is null) return BadRequest();
         var created = await service.CreateCountryAsync(request, cancellationToken);
         return CreatedAtRoute("GetCountry", new { id = created.Id }, created);
     }
@@ -50,5 +51,5 @@ public sealed class CountriesController(ICatalogService service) : ControllerBas
     [HttpPut("{id}")]
     [RequirePermission(CatalogPermissions.CountriesUpdate)]
     public async Task<ActionResult> UpdateCountryAsync(int id, UpsertCountryRequest request, CancellationToken cancellationToken) =>
-        id == 0 ? BadRequest() : await service.UpdateCountryAsync(id, request, cancellationToken) ? NoContent() : NotFound();
+        request is null || id == 0 ? BadRequest() : await service.UpdateCountryAsync(id, request, cancellationToken) ? NoContent() : NotFound();
 }

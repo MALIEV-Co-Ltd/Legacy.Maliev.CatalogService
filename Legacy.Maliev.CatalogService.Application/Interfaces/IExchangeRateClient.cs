@@ -6,5 +6,5 @@ namespace Legacy.Maliev.CatalogService.Application.Interfaces;
 public interface IExchangeRateClient
 {
     /// <summary>Returns the latest rate between two ISO currencies.</summary>
-    Task<ExchangeRateResponse> GetLatestAsync(string baseCurrency, string targetCurrency, CancellationToken cancellationToken);
+    Task<ExchangeRateResponse?> GetLatestAsync(string baseCurrency, string targetCurrency, CancellationToken cancellationToken);
 }
