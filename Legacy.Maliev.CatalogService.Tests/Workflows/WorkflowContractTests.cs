@@ -15,7 +15,7 @@ public sealed class WorkflowContractTests
 
     private static void BuildAndTest_RejectsPreviousUploadArtifactPin()
     {
-        var previousPin = Workflow.Replace("actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", StringComparison.Ordinal);
+        var previousPin = Workflow.Replace("actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9", "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", StringComparison.Ordinal);
         Assert.NotEqual(Workflow, previousPin);
         Assert.Throws<InvalidOperationException>(() => WorkflowContractValidator.Validate(previousPin));
     }
@@ -308,7 +308,7 @@ internal static partial class WorkflowContractValidator
         if (artifact.Children.Count != 4) throw new InvalidOperationException("Evidence retention must remain unconditional.");
         RequireScalarValue(artifact, "name", "Preserve validation evidence");
         RequireScalarValue(artifact, "if", "always()");
-        RequireScalarValue(artifact, "uses", "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a");
+        RequireScalarValue(artifact, "uses", "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9");
         var retention = RequireMapping(artifact, "with");
         if (retention.Children.Count != 4) throw new InvalidOperationException("Evidence inputs must remain exact.");
         RequireScalarValue(retention, "name", "catalog-validation-${{ github.sha }}");
