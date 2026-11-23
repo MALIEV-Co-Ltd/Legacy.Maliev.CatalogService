@@ -518,7 +518,7 @@ public sealed class CatalogOpenApiDocumentationHttpTests
     {
         var info = document.GetProperty("info");
         Assert.Equal("Legacy MALIEV Catalog Service API", info.GetProperty("title").GetString());
-        Assert.Equal("Temporary .NET 10 compatibility service preserving legacy country, currency, and material API contracts.",
+        Assert.Equal("Temporary .NET 11 compatibility service preserving legacy country, currency, and material API contracts.",
             info.GetProperty("description").GetString());
     }
 }

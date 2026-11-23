@@ -13,6 +13,41 @@ public sealed class WorkflowContractTests
     private static readonly string ApiProgram = File.ReadAllText(
         FindRepositoryFile("Legacy.Maliev.CatalogService.Api", "Program.cs"));
 
+    [Theory]
+    [InlineData("catalog-health-aliases.yml")]
+    [InlineData("country-health-diagnostics.yml")]
+    [InlineData("material-ignored-id-source.yml")]
+    [InlineData("material-literal-query-source.yml")]
+    public void FocusedWorkflow_PinsNativeSdkAndSharedDependencies(string name)
+    {
+        var text = File.ReadAllText(FindRepositoryFile(".github", "workflows", name));
+        var yaml = new YamlStream();
+        yaml.Load(new StringReader(text));
+        var root = Assert.IsType<YamlMappingNode>(Assert.Single(yaml.Documents).RootNode);
+        var jobs = Assert.IsType<YamlMappingNode>(root.Children[new YamlScalarNode("jobs")]);
+        var job = Assert.IsType<YamlMappingNode>(jobs.Children[new YamlScalarNode("validate")]);
+        var steps = Assert.IsType<YamlSequenceNode>(job.Children[new YamlScalarNode("steps")]);
+        var mapped = steps.Children.Select(step => Assert.IsType<YamlMappingNode>(step)).ToArray();
+        var sdk = Assert.Single(mapped, step => step.Children.TryGetValue(new YamlScalarNode("uses"), out var value)
+            && value.ToString() == "MALIEV-Co-Ltd/Legacy.Maliev.Workflows/actions/dotnet-validate@e3a6093324a24968876782153286f52db8b29fd8");
+        var inputs = Assert.IsType<YamlMappingNode>(sdk.Children[new YamlScalarNode("with")]);
+        Assert.Equal("11.0.100", inputs.Children[new YamlScalarNode("dotnet-version")].ToString());
+        foreach (var (repository, expected) in new[]
+        {
+            ("MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults", "173d63218d9142b34075bca87f5c6d933bcbdfb6"),
+            ("MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts", "fe17b8cea8ace3eef5434f8b29c9038f5c975613"),
+        })
+        {
+            var checkout = Assert.Single(mapped, step =>
+                step.Children.TryGetValue(new YamlScalarNode("with"), out var node)
+                && node is YamlMappingNode values
+                && values.Children.TryGetValue(new YamlScalarNode("repository"), out var repo)
+                && repo.ToString() == repository);
+            var values = Assert.IsType<YamlMappingNode>(checkout.Children[new YamlScalarNode("with")]);
+            Assert.Equal(expected, values.Children[new YamlScalarNode("ref")].ToString());
+        }
+    }
+
     private static void BuildAndTest_RejectsPreviousUploadArtifactPin()
     {
         var previousPin = Workflow.Replace("actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9", "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", StringComparison.Ordinal);
@@ -25,6 +60,7 @@ public sealed class WorkflowContractTests
     {
         BuildAndTest_RejectsPreviousUploadArtifactPin();
         WorkflowContractValidator.Validate(Workflow);
+        AssertMutationRejected("          dotnet-version: '11.0.100'\n", "");
         AssertMutationRejected("      CATALOG_SOURCE_DIAGNOSTIC_OUTPUT_DIRECTORY: ${{ github.workspace }}/runner-results/country-health-diagnostics\n", "");
         AssertMutationRejected("      - name: Verify full 3788 executions and original Country/health diagnostic exports\n        run: python3 -B scripts/verify-country-health-diagnostics.py runner-results --full --exports\n", "");
     }
@@ -41,8 +77,8 @@ public sealed class WorkflowContractTests
     public void BuildAndTest_RejectsCommentedDependencySha()
     {
         AssertMutationRejected(
-            "ref: 7edcd961024868513fd5f373cab3dcb261197f77",
-            "ref: main # 7edcd961024868513fd5f373cab3dcb261197f77");
+            "ref: 173d63218d9142b34075bca87f5c6d933bcbdfb6",
+            "ref: main # 173d63218d9142b34075bca87f5c6d933bcbdfb6");
     }
 
     [Fact]
@@ -274,7 +310,7 @@ internal static partial class WorkflowContractValidator
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["repository"] = "MALIEV-Co-Ltd/Legacy.Maliev.ServiceDefaults",
-                ["ref"] = "7edcd961024868513fd5f373cab3dcb261197f77",
+                ["ref"] = "173d63218d9142b34075bca87f5c6d933bcbdfb6",
                 ["path"] = ".dependencies/Legacy.Maliev.ServiceDefaults",
                 ["persist-credentials"] = "false",
             });
@@ -284,7 +320,7 @@ internal static partial class WorkflowContractValidator
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["repository"] = "MALIEV-Co-Ltd/Legacy.Maliev.CompatibilityContracts",
-                ["ref"] = "78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7",
+                ["ref"] = "fe17b8cea8ace3eef5434f8b29c9038f5c975613",
                 ["path"] = ".dependencies/Legacy.Maliev.CompatibilityContracts",
                 ["persist-credentials"] = "false",
             });
@@ -294,6 +330,7 @@ internal static partial class WorkflowContractValidator
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["solution"] = "Legacy.Maliev.CatalogService.slnx",
+                ["dotnet-version"] = "11.0.100",
                 ["use-local-maliev-dependencies"] = "true",
             });
         var gate = RequireMapping(steps.Children[4], "coverage gate");

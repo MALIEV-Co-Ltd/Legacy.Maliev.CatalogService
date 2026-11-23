@@ -43,7 +43,7 @@ static async Task RunHostAsync(string[] startupArgs)
     builder.AddStandardMiddleware(options => options.EnableRequestLogging = true);
     builder.AddStandardOpenApi(
         title: "Legacy MALIEV Catalog Service API",
-        description: "Temporary .NET 10 compatibility service preserving legacy country, currency, and material API contracts.");
+        description: "Temporary .NET 11 compatibility service preserving legacy country, currency, and material API contracts.");
     // The application-owned literal call activates its generated XML documentation transformers.
     builder.Services.AddOpenApi("v1");
     builder.Services.Configure<Microsoft.AspNetCore.OpenApi.OpenApiOptions>("v1", options =>

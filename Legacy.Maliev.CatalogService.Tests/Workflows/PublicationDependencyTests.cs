@@ -38,14 +38,16 @@ public sealed class PublicationDependencyTests
         Assert.Equal(8, inputs.Children.Count);
         Assert.Equal("${{ vars.LEGACY_ARTIFACT_REGISTRY }}/legacy-maliev-catalog-service", Value(inputs, "image"));
         Assert.Equal("Legacy.Maliev.CatalogService.Api/Dockerfile", Value(inputs, "dockerfile"));
-        Assert.Equal("7edcd961024868513fd5f373cab3dcb261197f77", Value(inputs, "legacy-service-defaults-ref"));
-        Assert.Equal("78e48ffc4ee000df0510cba5e7c7a3c4c4d539d7", Value(inputs, "compatibility-contracts-ref"));
+        Assert.Equal("173d63218d9142b34075bca87f5c6d933bcbdfb6", Value(inputs, "legacy-service-defaults-ref"));
+        Assert.Equal("fe17b8cea8ace3eef5434f8b29c9038f5c975613", Value(inputs, "compatibility-contracts-ref"));
         Assert.Equal(".", Value(inputs, "context"));
         Assert.Equal("legacy-production", Value(inputs, "environment"));
         Assert.Equal("${{ vars.LEGACY_WORKLOAD_IDENTITY_PROVIDER }}", Value(inputs, "workload-identity-provider"));
         Assert.Equal("${{ vars.LEGACY_CATALOG_PUBLISHER_SERVICE_ACCOUNT }}", Value(inputs, "service-account"));
 
         var dockerfile = File.ReadAllText(Path.Combine(root.FullName, "Legacy.Maliev.CatalogService.Api", "Dockerfile"));
+        Assert.Contains("FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime", dockerfile, StringComparison.Ordinal);
         Assert.Contains("COPY Directory.Build.props .", dockerfile, StringComparison.Ordinal);
         Assert.Contains("RUN dotnet restore", dockerfile, StringComparison.Ordinal);
         Assert.True(dockerfile.IndexOf("COPY Directory.Build.props .", StringComparison.Ordinal) <

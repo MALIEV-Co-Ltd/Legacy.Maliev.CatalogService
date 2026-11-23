@@ -27,7 +27,7 @@ public sealed class CatalogStartupFailureAcceptanceTests
             while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "Legacy.Maliev.CatalogService.slnx")))
                 repository = repository.Parent;
             Assert.NotNull(repository);
-            var api = Path.Combine(repository.FullName, "Legacy.Maliev.CatalogService.Api", "bin", "Release", "net10.0",
+            var api = Path.Combine(repository.FullName, "Legacy.Maliev.CatalogService.Api", "bin", "Release", "net11.0",
                 "Legacy.Maliev.CatalogService.Api.dll");
             Assert.True(File.Exists(api) && File.Exists(Path.ChangeExtension(api, ".runtimeconfig.json")),
                 "Build the actual API Release artifacts before subprocess acceptance.");
